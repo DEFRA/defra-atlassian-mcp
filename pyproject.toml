@@ -1,46 +1,177 @@
 [project]
-name = "defra-atlassian-mcp"
+name = "atlassian-mcp"
 version = "0.1.0"
-description = "defra-atlassian-mcp"
+description = "atlassian-mcp"
 readme = "README.md"
-requires-python = ">=3.14"
+requires-python = ">=3.13"
 dependencies = [
     "asgi-logger==0.1.0",
-    "aws-embedded-metrics==3.5.0",
+    "cryptography==50.0.1",
+    "dishka==1.10.1",
     "dnspython==2.8.0",
     "ecs-logging==2.3.0",
     "fastapi==0.141.1",
+    "fastmcp==4.0.5",
     "httpx2==2.13.0",
+    "joserfc==1.7.5",
+    "truststore==0.10.4",
     "pydantic-settings==2.15.0",
+    "pyjwt==2.14.0",
     "pymongo[aws,encryption,snappy,zstd]==4.18.1",
+    "python-multipart==0.0.32",
     "uvicorn==0.53.0",
 ]
 
 [dependency-groups]
 dev = [
-    "pre-commit==4.6.2",
+    "mypy==2.3.1",
     "pytest==9.1.1",
     "pytest-asyncio==1.4.0",
     "pytest-cov==7.1.0",
     "pytest-mock==3.15.1",
-    "ruff==0.16.7",
+    "ruff==0.16.8",
     "taskipy==1.14.1",
+    "testcontainers>=4.15.0",
+    "vcrpy==8.3.0",
 ]
 
-[tool.coverage.run]
-branch = true
-include = ["app/*"]
-omit = ["app/**/test_*.py"]
+[project.scripts]
+atlassian-mcp-http = "app.entrypoints.http:main"
 
-[tool.coverage.html]
-directory = "coverage/coverage_html"
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-[tool.coverage.xml]
-output = "coverage/coverage.xml"
-
-[tool.taskipy.tasks]
-format = "uv run ruff format . && uv run ruff check . --fix"
-test = "uv run task format && uv run pytest -q --cov=app --cov-report=xml:coverage/coverage.xml --cov-report=html:coverage/coverage_html"
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
 
 [tool.uv]
 exclude-newer = "1 week"
+
+[tool.mypy]
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+explicit_package_bases = true
+
+[[tool.mypy.overrides]]
+module = "pymongo.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "vcr.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+ignore_errors = true
+
+[tool.ruff]
+line-length = 88
+target-version = "py313"
+
+exclude = [
+    ".git",
+    ".github",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+    "coverage",
+    "coverage_html",
+    "reports",
+    "notebooks",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "I",   # isort
+    "W",   # pycodestyle warnings
+    "C90", # mccabe complexity
+    "N",   # pep8-naming
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+    "S",   # flake8-bandit (security)
+    "A",   # flake8-builtins
+    "COM", # flake8-commas
+    "C4",  # flake8-comprehensions
+    "DTZ", # flake8-datetimez
+    "T10", # flake8-debugger
+    "EM",  # flake8-errmsg
+    "ISC", # flake8-implicit-str-concat
+    "ICN", # flake8-import-conventions
+    "G",   # flake8-logging-format
+    "PIE", # flake8-pie
+    "PT",  # flake8-pytest-style
+    "Q",   # flake8-quotes
+    "RET", # flake8-return
+    "SIM", # flake8-simplify
+    "TID", # flake8-tidy-imports
+    "ARG", # flake8-unused-arguments
+]
+ignore = [
+    "E501",  # line too long, handled by formatter
+    "B008",  # do not perform function calls in argument defaults
+    "COM812", # missing trailing comma, conflicts with formatter
+]
+fixable = ["ALL"]
+unfixable = []
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = [
+    "S101",  # Allow assert in tests
+    "S105",  # Test fixtures use fake tokens
+    "S106",  # Test fixtures use fake tokens
+    "S107",  # Test fixtures use fake tokens as defaults
+]
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.ruff.lint.isort]
+known-third-party = ["fastapi", "pydantic", "fastmcp", "pytest", "dishka"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.coverage.run]
+source = ["app"]
+
+[tool.coverage.report]
+show_missing = true
+
+[tool.coverage.html]
+directory = "coverage_html"
+
+[tool.coverage.xml]
+output = "coverage.xml"
+
+[tool.taskipy.tasks]
+format = "uv run ruff format . && uv run ruff check . --fix"
+lint = "uv run ruff format ./app ./tests --check && uv run ruff check ./app ./tests"
+typecheck = "uv run mypy ./app ./tests"
+test = "uv run task lint && uv run task typecheck && uv run coverage run -m pytest -vv && uv run coverage html && uv run coverage xml"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--strict-markers --import-mode=importlib"
+# importlib mode lets the same basename appear in tests/unit/ and tests/app/,
+# which the mirror in docs/python-testing-standard.md depends on.
+consider_namespace_packages = true
+pythonpath = ["."]
+asyncio_mode = "auto"
+markers = [
+    "vcr: replays a recorded HTTP cassette from tests/cassettes",
+    "mongo: requires a live MongoDB (see compose.yaml)",
+]

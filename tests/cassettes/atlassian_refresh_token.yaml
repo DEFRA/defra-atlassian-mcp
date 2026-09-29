@@ -1,0 +1,30 @@
+interactions:
+- request:
+    body: '{"grant_type": "refresh_token", "refresh_token": "[FILTERED]", "client_id":
+      "test-client-id", "client_secret": "[FILTERED]"}'
+    headers:
+      accept:
+      - '*/*'
+      accept-encoding:
+      - gzip, deflate
+      connection:
+      - keep-alive
+      content-type:
+      - application/json
+      host:
+      - auth.atlassian.com
+      user-agent:
+      - python-httpx/0.28.1
+    method: POST
+    uri: https://auth.atlassian.com/oauth/token
+  response:
+    body:
+      string: '{"access_token":"[FILTERED]","refresh_token":"[FILTERED]","token_type":"Bearer","expires_in":3600,"scope":"read:jira-work
+        offline_access"}'
+    headers:
+      content-type:
+      - application/json
+    status:
+      code: 200
+      message: OK
+version: 1

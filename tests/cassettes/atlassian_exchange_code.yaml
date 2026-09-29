@@ -1,0 +1,55 @@
+interactions:
+- request:
+    body: '{"grant_type": "authorization_code", "code": "[FILTERED]", "redirect_uri":
+      "http://portal.example.com/account/atlassian-linking/callback", "client_id":
+      "test-client-id", "client_secret": "[FILTERED]"}'
+    headers:
+      accept:
+      - '*/*'
+      accept-encoding:
+      - gzip, deflate
+      connection:
+      - keep-alive
+      content-type:
+      - application/json
+      host:
+      - auth.atlassian.com
+      user-agent:
+      - python-httpx/0.28.1
+    method: POST
+    uri: https://auth.atlassian.com/oauth/token
+  response:
+    body:
+      string: '{"access_token":"[FILTERED]","refresh_token":"[FILTERED]","token_type":"Bearer","expires_in":3600,"scope":"read:jira-work
+        offline_access"}'
+    headers:
+      content-type:
+      - application/json
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      accept:
+      - '*/*'
+      accept-encoding:
+      - gzip, deflate
+      connection:
+      - keep-alive
+      host:
+      - api.atlassian.com
+      user-agent:
+      - python-httpx/0.28.1
+    method: GET
+    uri: https://api.atlassian.com/oauth/token/accessible-resources
+  response:
+    body:
+      string: '[{"id":"11223344-a1b2-3b4c-5d6e-f7a8b9c0d1e2","url":"https://example.atlassian.net","name":"example","scopes":["read:jira-work"],"avatarUrl":"https://site-admin-avatar-cdn.prod.public.atl-paas.net/avatars/240/rocket.png"}]'
+    headers:
+      content-type:
+      - application/json
+    status:
+      code: 200
+      message: OK
+version: 1

@@ -1,0 +1,45 @@
+services:
+  mongodb:
+    image: mongo:6.0.13
+    networks:
+      - cdp-tenant
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb-data:/data
+    restart: always
+
+  service:
+    build:
+      context: .
+      target: development
+    ports:
+      - 8085:8085
+    links:
+      - "mongodb:mongodb"
+    depends_on:
+      mongodb:
+        condition: service_started
+    env_file:
+      - ".env"
+    environment:
+      PORT: ${PORT:-8085}
+      # AWS_ENDPOINT_URL: ${AWS_ENDPOINT_URL:-http://moto:5000}
+      MONGO_URI: ${MONGO_URI:-mongodb://mongodb:27017/}
+      HOST: ${HOST:-0.0.0.0}
+    volumes:
+      - ./app:/home/nonroot/app
+    develop:
+      watch:
+        - action: rebuild
+          path: ./pyproject.toml
+          target: /home/nonroot/pyproject.toml
+    networks:
+      - cdp-tenant
+
+volumes:
+  mongodb-data:
+
+networks:
+  cdp-tenant:
+    driver: bridge

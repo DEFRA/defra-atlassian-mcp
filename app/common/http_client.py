@@ -1,56 +1,61 @@
-from logging import getLogger
+import logging
+import ssl
 
 import httpx2
+import truststore
 
-from app.common.tracing import ctx_trace_id
-from app.config import config
+from app.common import tracing
 
-logger = getLogger(__name__)
-
-
-async def async_hook_request_tracing(request):
-    trace_id = ctx_trace_id.get(None)
-    if trace_id:
-        request.headers[config.tracing_header] = trace_id
+logger = logging.getLogger(__name__)
 
 
-def hook_request_tracing(request):
-    trace_id = ctx_trace_id.get(None)
-    if trace_id:
-        request.headers[config.tracing_header] = trace_id
+def _create_ssl_context() -> ssl.SSLContext:
+    return truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
 
 
-def create_async_client(request_timeout: int = 30) -> httpx2.AsyncClient:
-    """
-    Create an async HTTP client with configurable timeout.
-
-    Args:
-        request_timeout: Request timeout in seconds
-
-    Returns:
-        Configured httpx2.AsyncClient instance
-    """
-    client_kwargs = {
-        "timeout": request_timeout,
-        "event_hooks": {"request": [async_hook_request_tracing]},
-    }
-
-    return httpx2.AsyncClient(**client_kwargs)
+async def async_hook_request_tracing(request: httpx2.Request) -> None:
+    trace_id = tracing.ctx_trace_id.get(None)
+    tracing_header = tracing.ctx_tracing_header.get(None)
+    if trace_id and tracing_header:
+        request.headers[tracing_header] = trace_id
 
 
-def create_client(request_timeout: int = 30) -> httpx2.Client:
-    """
-    Create a sync HTTP client with configurable timeout.
+def hook_request_tracing(request: httpx2.Request) -> None:
+    trace_id = tracing.ctx_trace_id.get(None)
+    tracing_header = tracing.ctx_tracing_header.get(None)
+    if trace_id and tracing_header:
+        request.headers[tracing_header] = trace_id
 
-    Args:
-        request_timeout: Request timeout in seconds
 
-    Returns:
-        Configured httpx2.Client instance
-    """
-    client_kwargs = {
-        "timeout": request_timeout,
-        "event_hooks": {"request": [hook_request_tracing]},
-    }
+def create_async_client(
+    *,
+    tracing_header: str | None = None,
+    trace_id: str | None = None,
+    proxy: str | None = None,
+    request_timeout: int = 30,
+) -> httpx2.AsyncClient:
+    headers = {tracing_header: trace_id} if tracing_header and trace_id else None
+    return httpx2.AsyncClient(
+        timeout=request_timeout,
+        headers=headers,
+        proxy=proxy,
+        verify=_create_ssl_context(),
+        event_hooks={"request": [async_hook_request_tracing]},
+    )
 
-    return httpx2.Client(**client_kwargs)
+
+def create_client(
+    *,
+    tracing_header: str | None = None,
+    trace_id: str | None = None,
+    proxy: str | None = None,
+    request_timeout: int = 30,
+) -> httpx2.Client:
+    headers = {tracing_header: trace_id} if tracing_header and trace_id else None
+    return httpx2.Client(
+        timeout=request_timeout,
+        headers=headers,
+        proxy=proxy,
+        verify=_create_ssl_context(),
+        event_hooks={"request": [hook_request_tracing]},
+    )
