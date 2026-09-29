@@ -4,41 +4,44 @@ on:
   pull_request:
     branches:
       - main
-    types:
-      - opened
-      - edited
-      - reopened
-      - synchronize
-      - ready_for_review
+
+permissions:
+  contents: read
+  pull-requests: read
 
 jobs:
-  pr-validator:
-    name: Run Pull Request Checks
+  test:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Test code and Create Test Coverage Reports
-        uses: actions/setup-python@v5
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          python-version: 3.12
-          cache: 'pip'
-      - run: |
-          pipx install uv
-          uv sync --frozen
-          uv run ruff check
-          uv run pytest
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: .python-version
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d
+        with:
+          python-version-file: .python-version
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Test
+        run: |
+          uv run task test
+
+      # - name: SonarCloud scan
+      #   uses: SonarSource/sonarqube-scan-action@22918119ff8e1ca75a623e15c8296b6ea4fbe28f
+      #   env:
+      #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
       - name: Test Docker Image Build
         run: |
           set +e
-          docker build --no-cache --tag cdp-python-backend-template .
+          docker build --no-cache --tag defra-atlassian-mcp .
           exit $?
-
-#      - name: SonarCloud Scan
-#        if: github.actor != 'dependabot[bot]'
-#        uses: SonarSource/sonarcloud-github-action@master
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
