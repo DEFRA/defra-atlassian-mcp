@@ -29,10 +29,8 @@ class TestProvider(dishka.Provider):
         return in_memory_space_access_request_store.InMemorySpaceAccessRequestStore()
 
     @dishka.provide
-    def provide_space_guard(self) -> guard_module.SpaceGuard:
-        return guard_module.ConfigAllowListSpaceGuard(
-            guard_module.ConfigAllowList.from_csv("FARM", "FARM")
-        )
+    def provide_allowlist_source(self) -> guard_module.AllowlistSource:
+        return guard_module.StaticAllowlistSource.from_csv("FARM", "FARM")
 
     @dishka.provide
     def provide_state_store(self) -> token_store.OAuthStateStore:

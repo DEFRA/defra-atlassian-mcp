@@ -14,7 +14,8 @@ else needs) is left out entirely rather than included and drained.
 
 Everything else -- IdentityService, PersonalTokenService,
 PersonalTokenVerifier, UserResolver, OAuthClient, LinkingService,
-the Jira and Confluence services, SpaceAccessRequestService and SpaceGuard --
+the Jira and Confluence services, SpaceAccessRequestService and the access
+policy --
 stays real, wired from the real provider list.
 """
 

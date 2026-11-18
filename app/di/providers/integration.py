@@ -49,26 +49,12 @@ class AtlassianProvider(dishka.Provider):
         return access_request_service.SpaceAccessRequestService(store)
 
     @dishka.provide(scope=dishka.Scope.APP)
-    def provide_config_allow_list(
+    def provide_static_allowlist(
         self, config: app_config.AppConfig
-    ) -> guard_module.ConfigAllowList:
-        return guard_module.ConfigAllowList.from_csv(
+    ) -> guard_module.StaticAllowlistSource:
+        """Built in both RESOURCE_GUARD_MODEs: the admin endpoint reports it
+        either way, and in config_list mode it is what is enforced."""
+        return guard_module.StaticAllowlistSource.from_csv(
             config.resource_guard_allowed_jira_projects,
             config.resource_guard_allowed_confluence_spaces,
         )
-
-    @dishka.provide(scope=dishka.Scope.APP)
-    def provide_space_guard(
-        self,
-        config: app_config.AppConfig,
-        store: approval_ports.SpaceAccessRequestStore,
-        allow_list: guard_module.ConfigAllowList,
-    ) -> guard_module.SpaceGuard:
-        """The one line an operator changes to choose enforcement (see
-        RESOURCE_GUARD_MODE): "config_list" (default) checks the hand-managed
-        CSV allow list, "allow_list" binds AllowListSpaceGuard once the admin
-        review workflow has real approvals to check against. The setting is
-        a Literal, so there is no third case to fall through to."""
-        if config.resource_guard_mode == "allow_list":
-            return guard_module.AllowListSpaceGuard(store)
-        return guard_module.ConfigAllowListSpaceGuard(allow_list)

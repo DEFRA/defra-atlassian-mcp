@@ -50,7 +50,7 @@ class SpaceAccessRequest(pydantic.BaseModel):
     """A request for governed access to an Atlassian space or project key:
     request -> IAO review -> decision, once per product.
 
-    Backs SpaceGuard (see guard.py) -- once a product is approved, an agent's
+    Backs ApprovedRequestsAllowlistSource (see guard.py) -- once a product is approved, an agent's
     existing tool calls against that space for that product simply start
     succeeding, and there is nothing further for a tool to do.
 

@@ -25,27 +25,27 @@ class IssueNotFoundError(Exception):
 class JiraService:
     """Read-only Jira access, gated per project key.
 
-    Every public method calls the guard first, before a token is fetched or
-    any vendor call is made -- there is no path to Jira data that skips it.
+    Every public method calls the access policy first, before credentials
+    are fetched or any vendor call is made -- there is no path to Jira data
+    that skips it.
     """
 
     def __init__(
         self,
         client: atlassian_client.AtlassianClient,
-        guard: guard_module.SpaceGuard,
+        policy: guard_module.AccessPolicy,
     ) -> None:
         self._client = client
-        self._guard = guard
+        self._policy = policy
 
     async def search_issues(
         self,
-        user_id: str,
         project_key: str,
         text: str | None = None,
         status: str | None = None,
         limit: int = _DEFAULT_LIMIT,
     ) -> str:
-        await self._guard.check(user_id, project_key, models.Product.JIRA)
+        await self._policy.check(models.Product.JIRA, project_key)
 
         clauses = [f"project = {_quote(project_key)}"]
         if text:
@@ -56,7 +56,6 @@ class JiraService:
         jql = " AND ".join(clauses) + " ORDER BY updated DESC"
 
         payload = await self._client.get(
-            user_id,
             models.Product.JIRA,
             "/rest/api/3/search/jql",
             params={
@@ -72,20 +71,19 @@ class JiraService:
 
         return "\n".join(_render_issue_line(issue) for issue in issues)
 
-    async def get_issue(self, user_id: str, issue_key: str) -> str:
+    async def get_issue(self, issue_key: str) -> str:
         """Fetch one issue.
 
-        The guard runs on the project in the key's own prefix, before any
+        The policy runs on the project in the key's own prefix, before any
         vendor call. That is not enough on its own: Jira resolves the old key
         of a moved issue to the issue in its new project. So the project on
         the returned issue is compared with the one that was checked, and a
         mismatch is reported as not found rather than leaking the issue.
         """
         project_key = project_key_of(issue_key)
-        await self._guard.check(user_id, project_key, models.Product.JIRA)
+        await self._policy.check(models.Product.JIRA, project_key)
 
         payload = await self._client.get(
-            user_id,
             models.Product.JIRA,
             f"/rest/api/3/issue/{issue_key}",
             params={"fields": _ISSUE_FIELDS},
@@ -100,7 +98,7 @@ class JiraService:
 
 def project_key_of(issue_key: str) -> str:
     """``FARM-123`` -> ``FARM``. Raises IssueNotFoundError for anything that
-    is not exactly an issue key, so a malformed key never reaches the guard
+    is not exactly an issue key, so a malformed key never reaches the policy
     and a crafted one (``FARM-1/../OTHER-5``) never reaches the request
     path, where URL normalisation would address a different issue."""
     match = _ISSUE_KEY.match(issue_key)

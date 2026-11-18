@@ -183,7 +183,7 @@ class TestErrorEnvelopes:
         assert "500" in result.content[0].text
 
     async def test_an_unapproved_space_is_forbidden(self):
-        """AllowListSpaceGuard denies when there is no approved request for
+        """The approved-requests allowlist denies when there is no approved request for
         this user and space -- an empty access-requests store already proves
         that, with no need for a bespoke always-deny fake."""
         async with test_app.mcp_client(

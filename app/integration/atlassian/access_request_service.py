@@ -10,8 +10,8 @@ _OPEN_STATUSES = frozenset(
 
 
 class SpaceAccessRequestService:
-    """The request -> IAO review -> decision workflow backing SpaceGuard's
-    AllowListSpaceGuard (see guard.py). Routers use this, never the store
+    """The request -> IAO review -> decision workflow backing
+    ApprovedRequestsAllowlistSource (RESOURCE_GUARD_MODE=allow_list). Routers use this, never the store
     directly.
 
     There is exactly one request document per (user, space). Asking for a

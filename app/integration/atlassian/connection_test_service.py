@@ -1,7 +1,9 @@
+import httpx2
 import pydantic
 from pydantic import alias_generators
 
 from app.integration.atlassian import client as atlassian_client
+from app.integration.linking import oauth_client
 
 
 class AtlassianProfile(pydantic.BaseModel):
@@ -19,8 +21,21 @@ class AtlassianProfile(pydantic.BaseModel):
 
 
 class AtlassianConnectionTestService:
-    def __init__(self, client: atlassian_client.AtlassianClient) -> None:
-        self._client = client
+    """Checks a user's linked OAuth account by calling Atlassian's ``/me``.
+
+    HTTP-only and OAuth-specific: ``/me`` hangs off the API gateway root, not
+    a product, so it does not go through AtlassianClient.
+    """
+
+    def __init__(
+        self,
+        http: httpx2.AsyncClient,
+        oauth: oauth_client.OAuthClient,
+        api_base: str,
+    ) -> None:
+        self._http = http
+        self._oauth = oauth
+        self._api_base = api_base.rstrip("/")
 
     async def test_connection(self, user_id: str) -> AtlassianProfile:
         """Test the user's Atlassian connection by calling GET /me.
@@ -34,7 +49,12 @@ class AtlassianConnectionTestService:
         Raises errors.AtlassianUnavailableError if no response is received
         at all (e.g. Atlassian is unreachable or the request times out).
         """
-        payload = await self._client.get_me(user_id)
+        access_token = await self._oauth.get_valid_token(user_id)
+        payload = await atlassian_client.get_json(
+            self._http,
+            f"{self._api_base}/me",
+            {"Authorization": f"Bearer {access_token}"},
+        )
 
         return AtlassianProfile(
             account_id=payload.get("account_id"),
