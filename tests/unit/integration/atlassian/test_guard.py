@@ -1,4 +1,4 @@
-import datetime
+import datetime as dt
 
 import pytest
 
@@ -23,7 +23,7 @@ def _request(space_key: str, **statuses: models.ProductStatus):
         reason="need it",
         iao="owner@defra.gov.uk",
         products=products,
-        created_at=datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC),
+        created_at=dt.datetime(2026, 1, 1, tzinfo=dt.UTC),
     )
 
 

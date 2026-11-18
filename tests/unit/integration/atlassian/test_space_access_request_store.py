@@ -1,4 +1,4 @@
-import datetime
+import datetime as dt
 import unittest.mock
 
 import pytest
@@ -7,7 +7,7 @@ from pymongo import common as pymongo_common
 from app.integration.atlassian import models
 from app.integration.atlassian import mongo_store as approval_store
 
-_NOW = datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC)
+_NOW = dt.datetime(2026, 1, 1, tzinfo=dt.UTC)
 
 JIRA = models.Product.JIRA
 CONFLUENCE = models.Product.CONFLUENCE

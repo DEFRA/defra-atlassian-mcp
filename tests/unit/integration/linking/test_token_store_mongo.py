@@ -5,7 +5,7 @@ catch datetime tz-awareness surviving a real round trip -- this closes that
 one class of bug permanently.
 """
 
-import datetime
+import datetime as dt
 
 import pytest
 
@@ -17,7 +17,7 @@ pytestmark = pytest.mark.mongo
 class TestStoreTokens:
     async def test_round_trips_a_tz_aware_expiry(self, mongo_db):
         store = mongo_store.MongoTokenStore(mongo_db["atlassian_tokens"])
-        expires_at = datetime.datetime(2030, 1, 1, tzinfo=datetime.UTC)
+        expires_at = dt.datetime(2030, 1, 1, tzinfo=dt.UTC)
         token = models.AtlassianToken(
             access_token="example-access-token",
             refresh_token="example-refresh-token",

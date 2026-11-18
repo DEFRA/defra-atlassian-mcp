@@ -1,4 +1,4 @@
-import datetime
+import datetime as dt
 import enum
 
 import pydantic
@@ -43,7 +43,7 @@ class ProductApproval(pydantic.BaseModel):
     status: ProductStatus = ProductStatus.NOT_REQUESTED
     reviewer_id: str | None = None
     decision_reason: str | None = None
-    decided_at: datetime.datetime | None = None
+    decided_at: dt.datetime | None = None
 
 
 class SpaceAccessRequest(pydantic.BaseModel):
@@ -72,7 +72,7 @@ class SpaceAccessRequest(pydantic.BaseModel):
     products: dict[Product, ProductApproval]
     data_handling_form_ref: str | None = None
     risk_assessment_ref: str | None = None
-    created_at: datetime.datetime
+    created_at: dt.datetime
 
     def product(self, product: Product) -> ProductApproval:
         return self.products.get(product, ProductApproval())

@@ -1,4 +1,4 @@
-import datetime
+import datetime as dt
 import uuid
 from collections.abc import Iterable
 
@@ -162,5 +162,5 @@ def _pending() -> models.ProductApproval:
     return models.ProductApproval(requested=True, status=models.ProductStatus.PENDING)
 
 
-def _now() -> datetime.datetime:
-    return datetime.datetime.now(datetime.UTC)
+def _now() -> dt.datetime:
+    return dt.datetime.now(dt.UTC)

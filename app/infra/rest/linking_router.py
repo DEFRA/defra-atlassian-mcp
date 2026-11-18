@@ -1,4 +1,4 @@
-import datetime
+import datetime as dt
 from typing import Annotated
 
 import fastapi
@@ -60,7 +60,7 @@ class AtlassianStatusResponse(pydantic.BaseModel):
     )
 
     linked: bool
-    access_token_expires_at: datetime.datetime | None = pydantic.Field(default=None)
+    access_token_expires_at: dt.datetime | None = pydantic.Field(default=None)
 
 
 @router.get("/authorization-url")

@@ -7,7 +7,7 @@ message in `result.content[0].text`, not just an exception type on a direct
 call.
 """
 
-import datetime
+import datetime as dt
 
 import httpx2
 
@@ -34,7 +34,7 @@ def _approved(space_key: str, *products: models.Product) -> models.SpaceAccessRe
         reason="need it",
         iao="owner@defra.gov.uk",
         products=approvals,
-        created_at=datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC),
+        created_at=dt.datetime(2026, 1, 1, tzinfo=dt.UTC),
     )
 
 

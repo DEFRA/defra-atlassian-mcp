@@ -1,4 +1,4 @@
-import datetime
+import datetime as dt
 import hashlib
 import secrets
 import uuid
@@ -65,7 +65,7 @@ class PersonalTokenService:
     ) -> tuple[models.PersonalAccessToken, str]:
         days = min(ttl_days or self._default_ttl_days, self._max_ttl_days)
         secret = _TOKEN_PREFIX + secrets.token_urlsafe(_TOKEN_ENTROPY_BYTES)
-        now = datetime.datetime.now(datetime.UTC)
+        now = dt.datetime.now(dt.UTC)
 
         token = models.PersonalAccessToken(
             id=f"pat_{uuid.uuid4().hex}",
@@ -74,7 +74,7 @@ class PersonalTokenService:
             prefix=secret[: len(_TOKEN_PREFIX) + _PREFIX_DISPLAY_LENGTH],
             label=label,
             created_at=now,
-            expires_at=now + datetime.timedelta(days=days),
+            expires_at=now + dt.timedelta(days=days),
         )
         await self._tokens.create(token)
         return token, secret
@@ -93,14 +93,14 @@ class PersonalTokenService:
             msg = f"Personal access token {record.id} has been revoked."
             raise exceptions.TokenRevokedError(msg)
 
-        now = datetime.datetime.now(datetime.UTC)
+        now = dt.datetime.now(dt.UTC)
         if record.expires_at <= now:
             msg = f"Personal access token {record.id} expired at {record.expires_at.isoformat()}."
             raise exceptions.TokenExpiredError(msg)
 
         stale = record.last_used_at is None or (
             now - record.last_used_at
-        ) > datetime.timedelta(seconds=self._last_used_throttle_seconds)
+        ) > dt.timedelta(seconds=self._last_used_throttle_seconds)
         if stale:
             await self._tokens.touch_last_used(record.id, now)
 

@@ -1,4 +1,4 @@
-import datetime
+import datetime as dt
 import uuid
 
 from app.integration.linking import exceptions, models, pkce, ports
@@ -14,8 +14,7 @@ class InMemoryOAuthStateStore(ports.OAuthStateStore):
         self._states[state] = models.OAuthState(
             user_id=user_id,
             code_verifier=code_verifier,
-            expires_at=datetime.datetime.now(datetime.UTC)
-            + datetime.timedelta(minutes=10),
+            expires_at=dt.datetime.now(dt.UTC) + dt.timedelta(minutes=10),
         )
         return models.IssuedState(
             state=state, code_challenge=pkce.derive_code_challenge(code_verifier)

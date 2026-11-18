@@ -1,4 +1,4 @@
-import datetime
+import datetime as dt
 import uuid
 from collections.abc import Callable
 
@@ -7,8 +7,8 @@ from pymongo.asynchronous import collection
 from app.integration.linking import exceptions, models, pkce, ports
 
 
-def _utc_now() -> datetime.datetime:
-    return datetime.datetime.now(datetime.UTC)
+def _utc_now() -> dt.datetime:
+    return dt.datetime.now(dt.UTC)
 
 
 class MongoTokenStore(ports.TokenStore):
@@ -42,8 +42,8 @@ class MongoOAuthStateStore(ports.OAuthStateStore):
     def __init__(
         self,
         states: collection.AsyncCollection,  # type: ignore[type-arg]
-        clock: Callable[[], datetime.datetime] = _utc_now,
-        ttl: datetime.timedelta = datetime.timedelta(minutes=10),
+        clock: Callable[[], dt.datetime] = _utc_now,
+        ttl: dt.timedelta = dt.timedelta(minutes=10),
     ) -> None:
         self._collection = states
         self._clock = clock
