@@ -83,8 +83,8 @@ def parse_key_list(
 
     Whitespace and empty entries are dropped. A wildcard or a malformed key
     is rejected with ValueError rather than silently never matching, so a
-    typo is caught at startup. An empty list is allowed but logged, since a
-    variable left empty by accident locks everyone out of that product.
+    typo is caught at startup. An empty list is allowed; whether that is
+    worth a warning depends on the entry point (see warn_if_empty).
     """
     keys = frozenset(key.strip() for key in value.split(",") if key.strip())
 
@@ -96,13 +96,27 @@ def parse_key_list(
         )
         raise ValueError(msg)
 
-    if not keys:
-        logger.warning(
-            "%s has no entries -- every %s key will be denied.",
-            env_var,
-            product.value,
-        )
     return keys
+
+
+_ENV_VARS = {
+    models.Product.JIRA: "RESOURCE_GUARD_ALLOWED_JIRA_PROJECTS",
+    models.Product.CONFLUENCE: "RESOURCE_GUARD_ALLOWED_CONFLUENCE_SPACES",
+}
+
+
+def warn_if_empty(source: "StaticAllowlistSource") -> None:
+    """On the HTTP server an empty list is usually a variable left empty by
+    accident, which locks every user out of that product -- so say so. (On
+    stdio, listing only one product is normal; the settings instead require
+    at least one list to be non-empty.)"""
+    for product, env_var in _ENV_VARS.items():
+        if not source.keys_for(product):
+            logger.warning(
+                "%s has no entries -- every %s key will be denied.",
+                env_var,
+                product.value,
+            )
 
 
 @dataclasses.dataclass(frozen=True)
@@ -118,7 +132,7 @@ class StaticAllowlistSource:
 
     @classmethod
     def from_csv(cls, jira_csv: str, confluence_csv: str) -> "StaticAllowlistSource":
-        return cls(
+        source = cls(
             parse_key_list(
                 jira_csv,
                 models.Product.JIRA,
@@ -130,6 +144,8 @@ class StaticAllowlistSource:
                 env_var="RESOURCE_GUARD_ALLOWED_CONFLUENCE_SPACES",
             ),
         )
+        warn_if_empty(source)
+        return source
 
     def keys_for(self, product: models.Product) -> frozenset[str]:
         if product is models.Product.JIRA:

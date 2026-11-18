@@ -54,7 +54,9 @@ class AtlassianProvider(dishka.Provider):
     ) -> guard_module.StaticAllowlistSource:
         """Built in both RESOURCE_GUARD_MODEs: the admin endpoint reports it
         either way, and in config_list mode it is what is enforced."""
-        return guard_module.StaticAllowlistSource(
+        source = guard_module.StaticAllowlistSource(
             config.resource_guard_allowed_jira_projects,
             config.resource_guard_allowed_confluence_spaces,
         )
+        guard_module.warn_if_empty(source)
+        return source

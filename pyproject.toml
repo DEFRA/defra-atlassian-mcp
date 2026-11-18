@@ -36,6 +36,7 @@ dev = [
 ]
 
 [project.scripts]
+atlassian-mcp = "app.entrypoints.stdio:main"
 atlassian-mcp-http = "app.entrypoints.http:main"
 
 [build-system]
