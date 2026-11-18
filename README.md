@@ -65,13 +65,44 @@ A `.env` in the current working directory is **never** read: MCP clients start s
 
 ### 2. Add it to your MCP client
 
-**Claude Code:**
+The simplest way is [`uvx`](https://docs.astral.sh/uv/guides/tools/), pinned to a commit of this repository. You don't need a checkout, and `uvx` installs only what stdio needs (no FastAPI or MongoDB).
+
+Pin a full 40-character commit SHA, not a branch. A branch moves, so your client would run new code without you choosing to. To find the latest commit on `main`:
 
 ```bash
-claude mcp add atlassian -- uv --directory /path/to/defra-atlassian-mcp run atlassian-mcp
+git ls-remote https://github.com/DEFRA/defra-atlassian-mcp main
 ```
 
-**Claude Desktop** (`claude_desktop_config.json`):
+Add the server to your MCP client's config file, for example `.mcp.json` in a project for Claude Code, or `claude_desktop_config.json` for Claude Desktop. Replace `<commit-sha>` with the SHA:
+
+```json
+{
+  "mcpServers": {
+    "atlassian": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/DEFRA/defra-atlassian-mcp@<commit-sha>",
+        "atlassian-mcp"
+      ]
+    }
+  }
+}
+```
+
+Or, for Claude Code from the command line:
+
+```bash
+claude mcp add atlassian -- uvx --from git+https://github.com/DEFRA/defra-atlassian-mcp@<commit-sha> atlassian-mcp
+```
+
+The first start takes a few seconds while `uvx` builds the package. After that it starts from uv's cache. To upgrade, change the SHA.
+
+To keep the config file somewhere else, add `"--env-file", "/path/to/atlassian-mcp.env"` after `"atlassian-mcp"`. Keeping the token in a file rather than in the client's config keeps it out of a file that is often shared or synced. Don't put the token in the `env` block of a project's `.mcp.json`, which is usually committed.
+
+`uvx` resolves dependencies fresh. It doesn't read this repository's `uv.lock` or the security pins in `[tool.uv] constraint-dependencies`, so it may install newer versions of dependencies than CI tested. If you need the locked versions, use a checkout instead.
+
+#### Or run it from a checkout
 
 ```json
 {
@@ -83,8 +114,6 @@ claude mcp add atlassian -- uv --directory /path/to/defra-atlassian-mcp run atla
   }
 }
 ```
-
-To keep the file somewhere else, add `--env-file /path/to/atlassian-mcp.env` after `atlassian-mcp`. Keeping the token in a file rather than the client's config keeps it out of a file that is often shared or synced.
 
 `uv run` installs the dev group, which is more than stdio needs. For a lean install, run `uv sync --no-dev` once in the checkout and use `/path/to/defra-atlassian-mcp/.venv/bin/atlassian-mcp` as the command instead.
 
