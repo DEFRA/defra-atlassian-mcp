@@ -4,26 +4,32 @@ version = "0.1.0"
 description = "atlassian-mcp"
 readme = "README.md"
 requires-python = ">=3.13"
+# The core install is what the stdio entry point (atlassian-mcp) needs.
+# Everything only the HTTP server uses is in the "http" extra below.
 dependencies = [
-    "asgi-logger==0.1.0",
-    "cryptography==50.0.2",
     "dishka==1.10.1",
-    "dnspython==2.9.1",
-    "ecs-logging==2.3.0",
-    "fastapi==0.162.0",
     "fastmcp==4.1.5",
     "httpx2==2.16.0",
-    "joserfc==1.7.7",
-    "truststore==0.10.5",
     "pydantic-settings==2.16.2",
-    "pyjwt==2.15.1",
+    "truststore==0.10.5",
+]
+
+[project.optional-dependencies]
+# The HTTP server (atlassian-mcp-http): FastAPI app, Mongo, ECS logging.
+# The Docker image installs it with --extra http.
+http = [
+    "asgi-logger==0.1.0",
+    "ecs-logging==2.3.0",
+    "fastapi==0.162.0",
     "pymongo[aws,encryption,snappy,zstd]==4.19.0",
-    "python-multipart==0.0.33",
     "uvicorn==0.54.0",
 ]
 
 [dependency-groups]
 dev = [
+    # Development and the test suite cover both entry points, so the dev
+    # group pulls in the http extra: plain `uv sync` / `uv run` keep working.
+    "atlassian-mcp[http]",
     "mypy==2.4.1",
     "pytest==9.2.0",
     "pytest-asyncio==1.4.1.post1",
@@ -37,7 +43,7 @@ dev = [
 
 [project.scripts]
 atlassian-mcp = "app.entrypoints.stdio:main"
-atlassian-mcp-http = "app.entrypoints.http:main"
+atlassian-mcp-http = "app.entrypoints.http_launcher:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -48,6 +54,17 @@ packages = ["app"]
 
 [tool.uv]
 exclude-newer = "1 week"
+# Security pins for transitive dependencies. A constraint applies only when
+# something else pulls the package in, so each pin follows its parent into
+# whichever install needs it. uv-specific: a plain `pip install` ignores
+# these.
+constraint-dependencies = [
+    "cryptography==50.0.2",     # via fastmcp (authlib, joserfc), pymongo[encryption]
+    "dnspython==2.9.1",         # via fastmcp (pydantic[email]), pymongo
+    "joserfc==1.7.7",           # via fastmcp
+    "pyjwt==2.15.1",            # via fastmcp (mcp[crypto])
+    "python-multipart==0.0.33", # via fastmcp (mcp)
+]
 
 [tool.mypy]
 warn_return_any = true

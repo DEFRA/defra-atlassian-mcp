@@ -11,6 +11,15 @@ resolution-markers = [
 exclude-newer = "0001-01-01T00:00:00Z" # This has no effect and is included for backwards compatibility when using relative exclude-newer values.
 exclude-newer-span = "P1W"
 
+[manifest]
+constraints = [
+    { name = "cryptography", specifier = "==50.0.2" },
+    { name = "dnspython", specifier = "==2.9.1" },
+    { name = "joserfc", specifier = "==1.7.7" },
+    { name = "pyjwt", specifier = "==2.15.1" },
+    { name = "python-multipart", specifier = "==0.0.33" },
+]
+
 [[package]]
 name = "aiofile"
 version = "3.12.3"
@@ -144,25 +153,25 @@ name = "atlassian-mcp"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
-    { name = "asgi-logger" },
-    { name = "cryptography" },
     { name = "dishka" },
-    { name = "dnspython" },
-    { name = "ecs-logging" },
-    { name = "fastapi" },
     { name = "fastmcp" },
     { name = "httpx2" },
-    { name = "joserfc" },
     { name = "pydantic-settings" },
-    { name = "pyjwt" },
-    { name = "pymongo", extra = ["aws", "encryption", "snappy", "zstd"] },
-    { name = "python-multipart" },
     { name = "truststore" },
+]
+
+[package.optional-dependencies]
+http = [
+    { name = "asgi-logger" },
+    { name = "ecs-logging" },
+    { name = "fastapi" },
+    { name = "pymongo", extra = ["aws", "encryption", "snappy", "zstd"] },
     { name = "uvicorn" },
 ]
 
 [package.dev-dependencies]
 dev = [
+    { name = "atlassian-mcp", extra = ["http"] },
     { name = "mypy" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
@@ -176,25 +185,22 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "asgi-logger", specifier = "==0.1.0" },
-    { name = "cryptography", specifier = "==50.0.2" },
+    { name = "asgi-logger", marker = "extra == 'http'", specifier = "==0.1.0" },
     { name = "dishka", specifier = "==1.10.1" },
-    { name = "dnspython", specifier = "==2.9.1" },
-    { name = "ecs-logging", specifier = "==2.3.0" },
-    { name = "fastapi", specifier = "==0.162.0" },
+    { name = "ecs-logging", marker = "extra == 'http'", specifier = "==2.3.0" },
+    { name = "fastapi", marker = "extra == 'http'", specifier = "==0.162.0" },
     { name = "fastmcp", specifier = "==4.1.5" },
     { name = "httpx2", specifier = "==2.16.0" },
-    { name = "joserfc", specifier = "==1.7.7" },
     { name = "pydantic-settings", specifier = "==2.16.2" },
-    { name = "pyjwt", specifier = "==2.15.1" },
-    { name = "pymongo", extras = ["aws", "encryption", "snappy", "zstd"], specifier = "==4.19.0" },
-    { name = "python-multipart", specifier = "==0.0.33" },
+    { name = "pymongo", extras = ["aws", "encryption", "snappy", "zstd"], marker = "extra == 'http'", specifier = "==4.19.0" },
     { name = "truststore", specifier = "==0.10.5" },
-    { name = "uvicorn", specifier = "==0.54.0" },
+    { name = "uvicorn", marker = "extra == 'http'", specifier = "==0.54.0" },
 ]
+provides-extras = ["http"]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "atlassian-mcp", extras = ["http"] },
     { name = "mypy", specifier = "==2.4.1" },
     { name = "pytest", specifier = "==9.2.0" },
     { name = "pytest-asyncio", specifier = "==1.4.1.post1" },

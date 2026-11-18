@@ -6,18 +6,216 @@ Access is granted per **space or project key**, and separately **per product**: 
 
 The companion frontend is [jira-mcp-portal](../jira-mcp-portal), which is the only intended caller of the REST surface described below.
 
+There are two entry points over the same Jira and Confluence tools:
+
+| | `atlassian-mcp-http` | `atlassian-mcp` |
+| :--- | :--- | :--- |
+| Transport | Streamable HTTP at `/mcp` | stdio, launched by a local MCP client |
+| Caller identity | Personal access token per user | None: one local user |
+| Atlassian credentials | Each user's OAuth (3LO) link, via the portal | Your own API token (classic or scoped) |
+| Allowlist | `config_list` (from config) or `allow_list` (per-user approvals via the portal) | From config only |
+| Needs | MongoDB, the portal, the `http` extra | Nothing else |
+
+Most of this README describes the HTTP server. For the local stdio server, see [Local stdio server](#local-stdio-server-atlassian-mcp).
+
 ## Requirements
 
 - Python `>= 3.13`
 - [uv](https://docs.astral.sh/uv/)
-- Docker (for local MongoDB)
+- Docker (for local MongoDB; HTTP server only)
 
-## Setup
+The stdio server needs only Python and uv.
+
+## Local stdio server (`atlassian-mcp`)
+
+Runs on your machine, started by your MCP client (Claude Desktop, Claude Code, or any stdio MCP client). It reads Jira and Confluence with your own Atlassian API token, and only within the projects and spaces you list.
+
+### 1. Create a config file
+
+Copy [`.env.example.stdio`](.env.example.stdio) to `~/.config/atlassian-mcp/.env` (on Windows, `%APPDATA%\atlassian-mcp\.env`) and fill it in:
+
+```bash
+mkdir -p ~/.config/atlassian-mcp
+cp .env.example.stdio ~/.config/atlassian-mcp/.env
+chmod 600 ~/.config/atlassian-mcp/.env
+```
+
+| Variable | Required | Meaning |
+| :--- | :--- | :--- |
+| `ATLASSIAN_SITE_URL` | yes | Your site, e.g. `https://your-site.atlassian.net` |
+| `ATLASSIAN_EMAIL` | yes | The email address of the Atlassian account that owns the token |
+| `ATLASSIAN_API_TOKEN` | yes | An [API token](https://id.atlassian.com/manage-profile/security/api-tokens) |
+| `ATLASSIAN_API_TOKEN_TYPE` | no | `classic` (default) or `scoped`. Scoped tokens go through `api.atlassian.com`; the site's cloud id is looked up from the site URL at startup |
+| `RESOURCE_GUARD_ALLOWED_JIRA_PROJECTS` | one of these two | Comma-separated Jira project keys, e.g. `FARM,AICE` |
+| `RESOURCE_GUARD_ALLOWED_CONFLUENCE_SPACES` | one of these two | Comma-separated Confluence space keys, e.g. `ENG` |
+| `ATLASSIAN_SKIP_STARTUP_CHECK` | no | `true` to skip the startup credential check (e.g. offline) |
+| `LOG_LEVEL` | no | `DEBUG`, `INFO` (default), `WARNING` or `ERROR` |
+| `REQUEST_TIMEOUT_SECONDS` | no | Default `30` |
+| `HTTP_PROXY` | no | Proxy URL for calls to Atlassian |
+
+The server refuses to start if both allowlists are empty. Keys are matched exactly and case-sensitively; wildcards and malformed keys are rejected at startup.
+
+**Where configuration is read from**, highest precedence first:
+
+1. Environment variables of the process (for example an MCP client's `env` block).
+2. The file passed with `--env-file PATH`. If the flag is given, the file must exist.
+3. If no `--env-file` is given: `$XDG_CONFIG_HOME/atlassian-mcp/.env`, defaulting to `~/.config/atlassian-mcp/.env`, or `%APPDATA%\atlassian-mcp\.env` on Windows, if it exists.
+
+A `.env` in the current working directory is **never** read: MCP clients start servers from a directory you do not choose.
+
+### 2. Add it to your MCP client
+
+The simplest way is [`uvx`](https://docs.astral.sh/uv/guides/tools/), pinned to a commit of this repository. You don't need a checkout, and `uvx` installs only what stdio needs (no FastAPI or MongoDB).
+
+Pin a full 40-character commit SHA, not a branch. A branch moves, so your client would run new code without you choosing to. To find the latest commit on `main`:
+
+```bash
+git ls-remote https://github.com/DEFRA/defra-atlassian-mcp main
+```
+
+Add the server to your MCP client's config file, for example `.mcp.json` in a project for Claude Code, or `claude_desktop_config.json` for Claude Desktop. Replace `<commit-sha>` with the SHA:
+
+```json
+{
+  "mcpServers": {
+    "atlassian": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/DEFRA/defra-atlassian-mcp@<commit-sha>",
+        "atlassian-mcp"
+      ]
+    }
+  }
+}
+```
+
+Or, for Claude Code from the command line:
+
+```bash
+claude mcp add atlassian -- uvx --from git+https://github.com/DEFRA/defra-atlassian-mcp@<commit-sha> atlassian-mcp
+```
+
+**GitHub Copilot CLI** reads `~/.copilot/mcp-config.json`, which also uses `mcpServers`, but each local server also needs `"type"` and `"tools"`:
+
+```json
+{
+  "mcpServers": {
+    "atlassian": {
+      "type": "local",
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/DEFRA/defra-atlassian-mcp@<commit-sha>",
+        "atlassian-mcp"
+      ],
+      "tools": ["*"]
+    }
+  }
+}
+```
+
+Or add it from the terminal:
+
+```bash
+copilot mcp add atlassian -- uvx --from git+https://github.com/DEFRA/defra-atlassian-mcp@<commit-sha> atlassian-mcp
+```
+
+The Copilot CLI also reads `.mcp.json` and `.github/mcp.json` in a repository, once you have trusted the folder.
+
+**GitHub Copilot in VS Code** reads `.vscode/mcp.json` in a workspace, or the user `mcp.json` (run **MCP: Open User Configuration** from the Command Palette). This file uses `servers` rather than `mcpServers`:
+
+```json
+{
+  "servers": {
+    "atlassian": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/DEFRA/defra-atlassian-mcp@<commit-sha>",
+        "atlassian-mcp"
+      ]
+    }
+  }
+}
+```
+
+The first start takes a few seconds while `uvx` builds the package. After that it starts from uv's cache. To upgrade, change the SHA.
+
+To keep the config file somewhere else, add `"--env-file", "/path/to/atlassian-mcp.env"` after `"atlassian-mcp"`. Keeping the token in a file rather than in the client's config keeps it out of a file that is often shared or synced. Don't put the token in the `env` block of a project's `.mcp.json`, `.github/mcp.json` or `.vscode/mcp.json`, which are usually committed.
+
+`uvx` resolves dependencies fresh. It doesn't read this repository's `uv.lock` or the security pins in `[tool.uv] constraint-dependencies`, so it may install newer versions of dependencies than CI tested. If you need the locked versions, use a checkout instead.
+
+#### Or run it from a checkout
+
+```json
+{
+  "mcpServers": {
+    "atlassian": {
+      "command": "uv",
+      "args": ["--directory", "/path/to/defra-atlassian-mcp", "run", "atlassian-mcp"]
+    }
+  }
+}
+```
+
+`uv run` installs the dev group, which is more than stdio needs. For a lean install, run `uv sync --no-dev` once in the checkout and use `/path/to/defra-atlassian-mcp/.venv/bin/atlassian-mcp` as the command instead.
+
+#### Or run it from the Docker image
+
+Build the image as described in [Building the Docker images](#building-the-docker-images):
+
+```bash
+docker build --target stdio --tag atlassian-mcp-stdio .
+```
+
+Point your MCP client at `docker` instead of `uv`. Use `-i` so stdin stays open, and never `-t`: a TTY would corrupt the protocol stream on stdout.
+
+```json
+{
+  "mcpServers": {
+    "atlassian": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "--env-file", "/path/to/atlassian-mcp.env", "atlassian-mcp-stdio"]
+    }
+  }
+}
+```
+
+Docker's `--env-file` reads the same `KEY=VALUE` file as `.env.example.stdio`. Don't put quotes around values, because Docker keeps them. Alternatively, mount your config directory with `-v ~/.config/atlassian-mcp:/home/nonroot/.config/atlassian-mcp:ro` and drop `--env-file`.
+
+Inside the container, TLS verification uses the image's CA certificates, not your machine's. If you are behind a proxy that inspects TLS, the `uv` route above is simpler.
+
+### 3. Check it
+
+On startup the server checks your credentials. If Atlassian answers 401, it stops with a message saying which settings to check. It also warns about any listed key that does not resolve: usually a typo, or a project you cannot see. Other failures (an outage, a 403) are warnings only. Startup messages and logs go to **stderr**, which MCP clients show in their server log. stdout carries only the MCP protocol.
+
+Ask the agent to call `list_allowed_keys` to confirm what it can read.
+
+### The allowlist is a guardrail, not a security boundary
+
+In stdio mode you hold the API token. The allowlist stops an agent wandering outside the projects and spaces you meant it to use, but anyone with the token, including you, can call Atlassian directly. **Your own Atlassian permissions are the real limit** on what can be read. Treat the token as you would your password. On the HTTP server, where the server holds each user's credentials and callers cannot reach Atlassian directly, the allowlist is enforced as a boundary.
+
+## Setup (HTTP server)
 
 ```bash
 uv sync
 cp .env.example .env  # then fill in ATLASSIAN_CLIENT_ID, ATLASSIAN_CLIENT_SECRET, ATLASSIAN_REDIRECT_URI, BASE_URL
 ```
+
+`uv sync` installs the dev group, which includes the `http` extra, so both entry points and the full test suite work from one environment.
+
+### Dependencies
+
+The package is split so the stdio entry point can be installed without the HTTP server's stack:
+
+| Install | Contains | Used by |
+| :--- | :--- | :--- |
+| core (`uv sync --no-dev`) | `dishka`, `fastmcp`, `httpx2`, `pydantic-settings`, `truststore` | `atlassian-mcp` (stdio) |
+| `--extra http` | adds `fastapi`, `uvicorn`, `pymongo`, `ecs-logging`, `asgi-logger` | `atlassian-mcp-http`, the Docker image |
+
+Security pins for transitive dependencies (`cryptography`, `dnspython`, `joserfc`, `pyjwt`, `python-multipart`) are uv `constraint-dependencies`: they pin a package only when something else pulls it in. A plain `pip install` ignores them, so install with uv.
 
 ## Configuration
 
@@ -58,13 +256,14 @@ Local development uses a single root `.env` file, loaded by both `compose.yaml` 
 
 ## MCP Tools
 
-The server exposes five tools to AI agents, resolved against the current `Principal` (see [Auth](#auth) — no `user_id` parameter is passed explicitly):
+Both entry points expose the four Jira and Confluence tools below. On the HTTP server they act for the caller identified by their personal access token (see [Auth](#auth)); no `user_id` parameter is passed explicitly. The allowlist check runs before any call to Atlassian.
 
-- **`list_spaces()`** — Lists the spaces and project keys the caller has requested, with the approval status of each for Jira and Confluence. The natural first call: it tells an agent what it is allowed to read.
+- **`list_spaces()`** — HTTP only. Lists the spaces and project keys the caller has requested, with the approval status of each for Jira and Confluence. The natural first call in `allow_list` mode: it tells an agent what it is allowed to read.
+- **`list_allowed_keys()`** — stdio, and HTTP in `config_list` mode. Lists the Jira project keys and Confluence space keys in the configured allowlist.
 - **`search_jira_issues(project_key, text=None, status=None, limit=25)`** — Searches issues in a project, most recently updated first. JQL is built server-side; the caller never supplies it.
-- **`get_jira_issue(issue_key)`** — Returns one issue's fields and description. The project the guard checks comes from the key's own prefix (`FARM-123` → `FARM`), which Jira guarantees.
+- **`get_jira_issue(issue_key)`** — Returns one issue's fields and description. The key must be exactly `PROJECT-123`; anything else is refused before any call. The allowlist is checked against the key's prefix (`FARM-123` → `FARM`), and the project on the returned issue is checked again, because Jira resolves the old key of a moved issue to its new project.
 - **`list_confluence_pages(space_key, query=None, limit=25)`** — Lists pages in a space, most recently modified first.
-- **`get_confluence_page(space_key, page_id)`** — Returns one page's content as text. The space key is a parameter so the guard can run before the page is fetched; the page is then verified to actually live in that space.
+- **`get_confluence_page(space_key, page_id)`** — Returns one page's content as text. The space key is a parameter so the allowlist can be checked before the page is fetched; the page is then verified to actually live in that space. The page id must be digits.
 
 Connecting an Atlassian account is a frontend concern, not an MCP tool — the portal drives it via the REST routes under `/linking`.
 
@@ -223,6 +422,49 @@ uv run atlassian-mcp-http
 ```
 
 This runs on `HOST:PORT` from your environment (default `127.0.0.1:8085`).
+
+## Building the Docker images
+
+The [Dockerfile](Dockerfile) has three targets:
+
+| Target | Entry point | Contents | Use |
+| :--- | :--- | :--- | :--- |
+| `development` | `atlassian-mcp-http` | Dev base image, `http` extra | `docker compose` |
+| `stdio` | `atlassian-mcp` | Core dependencies only, no port | Local MCP clients |
+| `production` (default, last) | `atlassian-mcp-http` | `http` extra, port 8085 | The deployed HTTP server |
+
+`production` must stay the **last** stage in the file. The CDP publish workflow builds the default target without naming one, so whichever stage is last is what gets deployed.
+
+**HTTP server image:**
+
+```bash
+docker build --tag atlassian-mcp-http .
+```
+
+**stdio image, for your machine's architecture:**
+
+```bash
+docker build --target stdio --tag atlassian-mcp-stdio .
+```
+
+**stdio image for both `linux/amd64` and `linux/arm64`** (one tag covering both architectures, e.g. to share with colleagues on Intel and Apple silicon):
+
+```bash
+docker buildx build --platform linux/amd64,linux/arm64 \
+  --target stdio --tag atlassian-mcp-stdio --load .
+```
+
+- Building the architecture your machine isn't uses emulation, which Docker Desktop includes. It is slower but needs no setup.
+- `--load` keeps a multi-arch image locally only if Docker uses the containerd image store, which is the default in current Docker Desktop. Otherwise replace `--load` with `--push` and a registry tag.
+- `docker run` picks the matching architecture automatically. Add `--platform linux/amd64` to run the other one.
+
+**Smoke-test a stdio image** (MCP handshake, tool list, clean stdout, no http-only packages, exit 2 without config; makes no calls to Atlassian):
+
+```bash
+./scripts/smoke-test-stdio-image.sh atlassian-mcp-stdio
+```
+
+CI builds the stdio image and runs this script natively on amd64 and arm64 for every pull request.
 
 ## Development tasks
 

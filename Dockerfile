@@ -16,7 +16,7 @@ COPY --chown=nonroot:nonroot uv.lock .
 COPY --chown=nonroot:nonroot app/ ./app/
 
 RUN --mount=type=cache,target=/home/nonroot/.cache/uv,uid=1000,gid=1000 \
-    uv sync --locked --link-mode=copy
+    uv sync --locked --link-mode=copy --extra http
 
 COPY --chown=nonroot:nonroot logging-dev.json .
 
@@ -26,6 +26,30 @@ ENV PORT=${PORT}
 EXPOSE ${PORT} ${PORT_DEBUG}
 
 ENTRYPOINT [ "atlassian-mcp-http"]
+
+# stdio MCP server for a local MCP client: core dependencies only (no http
+# extra), no port, no curl. Build with --target stdio and run with
+# `docker run -i --rm --env-file <file> <image>` -- -i keeps stdin open, and
+# never -t, since a TTY would corrupt the JSON-RPC stream on stdout.
+#
+# Must stay ABOVE the production stage: the CDP build action builds the last
+# stage in this file, which has to remain the HTTP server.
+FROM defradigital/python:${PARENT_VERSION} AS stdio
+
+ENV PATH="/home/nonroot/.venv/bin:${PATH}"
+
+WORKDIR /home/nonroot
+
+COPY --chown=nonroot:nonroot pyproject.toml .
+COPY --chown=nonroot:nonroot README.md .
+COPY --chown=nonroot:nonroot uv.lock .
+COPY --chown=nonroot:nonroot app/ ./app/
+
+RUN --mount=type=cache,target=/home/nonroot/.cache/uv,uid=1000,gid=1000 \
+    --mount=from=development,source=/home/nonroot/.local/bin/uv,target=/home/nonroot/.local/bin/uv \
+    uv sync --locked --compile-bytecode --link-mode=copy --no-dev
+
+ENTRYPOINT [ "atlassian-mcp" ]
 
 FROM defradigital/python:${PARENT_VERSION} AS production
 
@@ -51,7 +75,7 @@ COPY logging.json .
 
 RUN --mount=type=cache,target=/home/nonroot/.cache/uv,uid=1000,gid=1000 \
     --mount=from=development,source=/home/nonroot/.local/bin/uv,target=/home/nonroot/.local/bin/uv \
-    uv sync --locked --compile-bytecode --link-mode=copy --no-dev
+    uv sync --locked --compile-bytecode --link-mode=copy --no-dev --extra http
 
 ARG PORT
 ENV PORT=${PORT}

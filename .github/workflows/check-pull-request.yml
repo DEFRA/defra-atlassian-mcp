@@ -45,3 +45,91 @@ jobs:
           set +e
           docker build --no-cache --tag defra-atlassian-mcp .
           exit $?
+
+  stdio-import-isolation:
+    # The stdio entry point must run from the core install alone, without the
+    # http extra. tests/unit/test_stdio_layering.py checks the static import
+    # graph in the main job; this checks what a real core-only install
+    # actually loads.
+    name: stdio import isolation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: .python-version
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d
+        with:
+          python-version-file: .python-version
+
+      - name: Install core dependencies only
+        run: uv sync --frozen --no-dev
+
+      - name: Check http-only packages are not installed
+        run: |
+          uv run --no-sync python -c "
+          import importlib.util, sys
+          present = [m for m in ('fastapi', 'pymongo', 'bson', 'ecs_logging') if importlib.util.find_spec(m)]
+          sys.exit(f'http-only packages installed without the extra: {present}' if present else 0)
+          "
+
+      - name: Import the stdio entry point
+        run: |
+          uv run --no-sync python -c "
+          import sys
+          import app.entrypoints.stdio
+          loaded = sorted(m for m in ('fastapi', 'pymongo', 'bson') if m in sys.modules)
+          sys.exit(f'stdio entry point loaded {loaded}' if loaded else 0)
+          "
+
+      - name: Check the stdio command starts and rejects missing config
+        run: |
+          set +e
+          env -i PATH="$PATH" HOME="$RUNNER_TEMP" uv run --no-sync atlassian-mcp 2> stderr.txt
+          status=$?
+          set -e
+          cat stderr.txt
+          test "$status" -eq 2
+          grep -q "ATLASSIAN_SITE_URL" stderr.txt
+
+      - name: Check the http command explains the missing extra
+        run: |
+          set +e
+          uv run --no-sync atlassian-mcp-http 2> stderr.txt
+          status=$?
+          set -e
+          cat stderr.txt
+          test "$status" -eq 1
+          grep -q "'http' extra" stderr.txt
+
+  stdio-image:
+    # The stdio image is published for developer machines, including Apple
+    # silicon, so it is built and smoke-tested natively on both
+    # architectures. The CDP publish workflow builds only the default
+    # (production, HTTP) stage, on amd64.
+    name: stdio image (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Build stdio image
+        run: docker build --target stdio --tag atlassian-mcp-stdio:ci .
+
+      - name: Smoke test stdio image
+        run: |
+          chmod +x ./scripts/smoke-test-stdio-image.sh
+          ./scripts/smoke-test-stdio-image.sh atlassian-mcp-stdio:ci
