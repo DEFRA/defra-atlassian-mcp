@@ -3,9 +3,9 @@ from collections.abc import AsyncIterator
 import dishka
 import httpx2
 
-from app import config as app_config
 from app.auth import principal as principal_module
 from app.common import http_client, request_context
+from app.config import http as http_config
 from app.integration.atlassian import approved_requests_source, connection_test_service
 from app.integration.atlassian import client as atlassian_client
 from app.integration.atlassian import guard as guard_module
@@ -31,7 +31,7 @@ class RequestScopeProvider(dishka.Provider):
     @dishka.provide
     async def provide_httpx_client(
         self,
-        config: app_config.AppConfig,
+        config: http_config.HttpSettings,
         rc: request_context.RequestContext,
     ) -> AsyncIterator[httpx2.AsyncClient]:
         proxy = str(config.http_proxy) if config.http_proxy else None
@@ -39,13 +39,14 @@ class RequestScopeProvider(dishka.Provider):
             tracing_header=config.tracing_header,
             trace_id=rc.trace_id,
             proxy=proxy,
+            request_timeout=config.request_timeout_seconds,
         ) as client:
             yield client
 
     @dishka.provide
     def provide_oauth_client(
         self,
-        config: app_config.AppConfig,
+        config: http_config.AtlassianConfig,
         client: httpx2.AsyncClient,
         tokens: token_store.TokenStore,
     ) -> oauth_client.OAuthClient:
@@ -63,7 +64,7 @@ class RequestScopeProvider(dishka.Provider):
     @dishka.provide
     def provide_atlassian_auth(
         self,
-        config: app_config.AppConfig,
+        config: http_config.HttpSettings,
         oauth: oauth_client.OAuthClient,
         principal: principal_module.Principal,
     ) -> atlassian_ports.AtlassianAuth:
@@ -88,7 +89,7 @@ class RequestScopeProvider(dishka.Provider):
     @dishka.provide
     def provide_connection_test_service(
         self,
-        config: app_config.AppConfig,
+        config: http_config.HttpSettings,
         client: httpx2.AsyncClient,
         oauth: oauth_client.OAuthClient,
     ) -> connection_test_service.AtlassianConnectionTestService:
@@ -101,7 +102,7 @@ class RequestScopeProvider(dishka.Provider):
     @dishka.provide
     def provide_allowlist_source(
         self,
-        config: app_config.AppConfig,
+        config: http_config.HttpSettings,
         static: guard_module.StaticAllowlistSource,
         store: atlassian_ports.SpaceAccessRequestStore,
         principal: principal_module.Principal,

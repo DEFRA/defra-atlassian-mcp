@@ -5,14 +5,14 @@ import pydantic
 import pytest
 import vcr as vcr_module
 
-from app import config as app_config
+from app.config import http as http_config
 from tests.fixtures import di as fixtures_di
 from tests.support import vcr_config
 
 pytest_plugins = ["tests.support.mongo"]
 
 # AtlassianConfig has no defaults for these (real credentials are secrets),
-# so pydantic-settings fails to construct it — and thus AppConfig, via its
+# so pydantic-settings fails to construct it — and thus HttpSettings, via its
 # default_factory — wherever a test builds one without going through
 # `fake_config`/`model_construct`. setdefault so real CI-configured values
 # still win; these never need to be un-set.
@@ -39,16 +39,16 @@ vcr_instance = vcr_module.VCR(
 
 
 @pytest.fixture
-def fake_config() -> app_config.AppConfig:
-    """Real AppConfig built from fixed test values — no MagicMock, no env var coupling."""
-    atlassian_cfg = app_config.AtlassianConfig.model_construct(
+def fake_config() -> http_config.HttpSettings:
+    """Real HttpSettings built from fixed test values — no MagicMock, no env var coupling."""
+    atlassian_cfg = http_config.AtlassianConfig.model_construct(
         auth_base="https://auth.atlassian.com",
         api_base="https://api.atlassian.com",
         client_id="test-client-id",
         client_secret=pydantic.SecretStr("example-secret"),
         redirect_uri="http://portal.example.com/account/atlassian-linking/callback",
     )
-    return app_config.AppConfig.model_construct(
+    return http_config.HttpSettings.model_construct(
         base_url="http://example.com",
         atlassian_config=atlassian_cfg,
     )

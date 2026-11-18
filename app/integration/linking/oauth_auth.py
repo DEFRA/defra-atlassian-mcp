@@ -3,6 +3,14 @@ from typing import Protocol
 from app.integration.atlassian import errors, models, ports
 from app.integration.linking import models as linking_models
 
+# Written for the MCP caller -- the tools pass AtlassianCredentialsError
+# messages through as-is, so they must not carry a user id.
+_NOT_LINKED_MESSAGE = (
+    "No Atlassian credentials found. Please connect your Atlassian account "
+    "in the portal first."
+)
+_NO_SITE_MESSAGE = "The linked Atlassian account has access to no sites."
+
 
 class CredentialSource(Protocol):
     """The part of OAuthClient this adapter needs."""
@@ -27,11 +35,13 @@ class OAuthAtlassianAuth:
         self._api_base = api_base.rstrip("/")
 
     async def authorize(self, product: models.Product) -> ports.RequestAuth:
-        token = await self._oauth.get_valid_credentials(self._user_id)
+        try:
+            token = await self._oauth.get_valid_credentials(self._user_id)
+        except errors.AtlassianCredentialsError as exc:
+            raise errors.AtlassianCredentialsError(_NOT_LINKED_MESSAGE) from exc
 
         if token.cloud_id is None:
-            msg = f"No Atlassian site resolved for user {self._user_id}"
-            raise errors.AtlassianCredentialsError(msg)
+            raise errors.AtlassianCredentialsError(_NO_SITE_MESSAGE)
 
         return ports.RequestAuth(
             base_url=f"{self._api_base}/ex/{product.value}/{token.cloud_id}",

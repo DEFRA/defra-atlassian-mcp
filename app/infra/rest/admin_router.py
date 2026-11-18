@@ -3,8 +3,8 @@ import pydantic
 from dishka.integrations import fastapi as dishka_fastapi
 from pydantic import alias_generators
 
-from app import config as app_config
 from app.auth import principal as principal_module
+from app.config import http as http_config
 from app.infra.rest.auth import dependencies as auth_deps
 from app.integration.atlassian import access_request_service, exceptions
 from app.integration.atlassian import guard as guard_module
@@ -27,7 +27,7 @@ class ConfigAllowListResponse(pydantic.BaseModel):
 @dishka_fastapi.inject
 async def get_config_allow_list(
     _principal: principal_module.Principal = fastapi.Depends(auth_deps.get_principal),
-    config: dishka_fastapi.FromDishka[app_config.AppConfig] = ...,  # type: ignore[assignment]
+    config: dishka_fastapi.FromDishka[http_config.HttpSettings] = ...,  # type: ignore[assignment]
     allow_list: dishka_fastapi.FromDishka[guard_module.StaticAllowlistSource] = ...,  # type: ignore[assignment]
 ) -> ConfigAllowListResponse:
     """The hand-managed, per-product allow list

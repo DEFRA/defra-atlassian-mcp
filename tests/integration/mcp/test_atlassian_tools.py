@@ -288,3 +288,17 @@ class TestListSpaces:
             result = await client.call_tool("list_spaces", {})
 
         assert "No spaces requested" in result.content[0].text
+
+
+class TestListAllowedKeys:
+    async def test_reports_both_products_allowlists(self):
+        async with test_app.mcp_client(
+            responses=[],
+            resource_guard_allowed_jira_projects="FARM,AICE",
+            resource_guard_allowed_confluence_spaces="",
+        ) as (client, _overrides, _user_id):
+            result = await client.call_tool("list_allowed_keys", {})
+
+        assert result.content[0].text == (
+            "Jira projects: AICE, FARM\nConfluence spaces: (none)"
+        )

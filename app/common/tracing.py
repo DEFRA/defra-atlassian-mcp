@@ -9,7 +9,6 @@ from starlette import responses
 from starlette.middleware import base
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from app import config as app_config
 from app.common import request_context
 from app.common.trace_context import (
     ctx_request,
@@ -17,6 +16,7 @@ from app.common.trace_context import (
     ctx_trace_id,
     ctx_tracing_header,
 )
+from app.config import http as http_config
 
 __all__ = [
     "REQUEST_CONTEXT_SCOPE_KEY",
@@ -42,7 +42,9 @@ class TraceIdMiddleware(base.BaseHTTPMiddleware):
     a `RequestContext` on the ASGI scope for the container middleware to pick
     up."""
 
-    def __init__(self, app: ASGIApp, cfg: app_config.AppConfig, **kwargs: Any) -> None:
+    def __init__(
+        self, app: ASGIApp, cfg: http_config.HttpSettings, **kwargs: Any
+    ) -> None:
         super().__init__(app, **kwargs)
         self._tracing_header = cfg.tracing_header
 

@@ -1,7 +1,7 @@
 """The trace ContextVars live in app.common.trace_context so that modules
 shared with the stdio entry point can use them without importing the
 FastAPI middleware in app.common.tracing, which pulls in fastapi and
-app.config.
+the HTTP settings (app.config.http).
 
 starlette is not checked: fastmcp itself depends on it.
 """
@@ -19,7 +19,7 @@ _SHARED_MODULES = (
     "app.common.log_utils",
     "app.infra.mcp.dishka_inject",
 )
-_FORBIDDEN = ("fastapi", "app.config", "app.common.tracing")
+_FORBIDDEN = ("fastapi", "app.config.http", "app.common.tracing")
 
 
 @pytest.mark.parametrize("module", _SHARED_MODULES)

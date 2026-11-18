@@ -4,7 +4,7 @@ import json
 import httpx2
 import pytest
 
-from app import config as app_config
+from app.config import http as http_config
 from app.integration.linking import exceptions
 from app.integration.linking import models as schemas
 from app.integration.linking import oauth_client as oauth_client_module
@@ -15,14 +15,14 @@ _CODE_VERIFIER = "test-code-verifier"
 
 
 def _make_oauth(
-    config: app_config.AppConfig,
+    config: http_config.HttpSettings,
     responses: list[httpx2.Response | Exception],
     tokens: in_memory_token_store.InMemoryTokenStore | None = None,
 ) -> tuple[oauth_client_module.OAuthClient, httpx_helpers.MockTransport]:
     client, transport = httpx_helpers.make_mock_client(responses)
     return (
         oauth_client_module.OAuthClient(
-            config=config,
+            config=config.atlassian_config,
             client=client,
             tokens=tokens or in_memory_token_store.InMemoryTokenStore(),
         ),
@@ -34,7 +34,7 @@ def _make_oauth(
 def oauth(fake_config):
     client, _ = httpx_helpers.make_mock_client([])
     return oauth_client_module.OAuthClient(
-        config=fake_config,
+        config=fake_config.atlassian_config,
         client=client,
         tokens=in_memory_token_store.InMemoryTokenStore(),
     )

@@ -4,7 +4,7 @@ from typing import Any
 
 import httpx2
 
-from app import config as app_config
+from app.config import http as http_config
 from app.integration.linking import exceptions, models, ports
 
 _LEEWAY = dt.timedelta(seconds=60)
@@ -23,7 +23,7 @@ class OAuthClient:
 
     Access tokens are treated as opaque bearer strings and never decoded or
     signature-checked here. Trust comes from how the token was obtained --
-    TLS to ``atlassian_config.auth_base`` plus ``client_secret``
+    TLS to ``AtlassianConfig.auth_base`` plus ``client_secret``
     authentication at the token endpoint -- and Atlassian's API is the only
     authority on a token's continued validity, surfaced as a 401 on the next
     real call (see ``exceptions.AtlassianApiError``). Expiry is read from the
@@ -38,7 +38,7 @@ class OAuthClient:
 
     def __init__(
         self,
-        config: app_config.AppConfig,
+        config: http_config.AtlassianConfig,
         client: httpx2.AsyncClient,
         tokens: ports.TokenStore,
     ) -> None:
@@ -48,15 +48,15 @@ class OAuthClient:
 
     @property
     def redirect_uri(self) -> str:
-        return self._config.atlassian_config.redirect_uri
+        return self._config.redirect_uri
 
     @property
     def _token_url(self) -> str:
-        base = self._config.atlassian_config.auth_base.rstrip("/")
+        base = self._config.auth_base.rstrip("/")
         return base + _TOKEN_PATH
 
     def build_authorization_url(self, state: str, code_challenge: str) -> str:
-        atlassian_config = self._config.atlassian_config
+        atlassian_config = self._config
         base = atlassian_config.auth_base.rstrip("/")
         auth_url = base + _AUTHORIZE_PATH
         params = urllib.parse.urlencode(
@@ -98,7 +98,7 @@ class OAuthClient:
         )
 
     async def _post_token(self, payload: dict[str, Any]) -> dict[str, Any]:
-        atlassian_config = self._config.atlassian_config
+        atlassian_config = self._config
 
         try:
             response = await self._client.post(
@@ -127,7 +127,7 @@ class OAuthClient:
         reach no site, since without a cloud id no product API call can be
         built.
         """
-        base = self._config.atlassian_config.api_base.rstrip("/")
+        base = self._config.api_base.rstrip("/")
 
         try:
             response = await self._client.get(

@@ -1,7 +1,7 @@
 import dishka
 from pymongo.asynchronous import database
 
-from app import config as app_config
+from app.config import http as http_config
 from app.identity import mongo_store, ports, service
 
 
@@ -34,7 +34,7 @@ class IdentityProvider(dishka.Provider):
     def provide_personal_token_service(
         self,
         tokens: ports.PersonalAccessTokenStore,
-        identity_config: app_config.IdentityConfig,
+        identity_config: http_config.IdentityConfig,
     ) -> service.PersonalTokenService:
         return service.PersonalTokenService(
             tokens,

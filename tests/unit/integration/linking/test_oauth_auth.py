@@ -27,10 +27,18 @@ class TestOAuthAtlassianAuth:
 
         assert dict(auth.headers) == {"Authorization": "Bearer tok"}
 
-    async def test_an_unlinked_user_is_a_credentials_error(self):
-        with pytest.raises(errors.AtlassianCredentialsError):
+    async def test_an_unlinked_user_is_told_to_connect_in_the_portal(self):
+        """The tools pass this message straight to the MCP caller, so it
+        must say what to do and must not carry the user id."""
+        with pytest.raises(errors.AtlassianCredentialsError) as exc_info:
             await _auth(token=None).authorize(models.Product.JIRA)
 
-    async def test_a_token_with_no_site_is_a_credentials_error(self):
-        with pytest.raises(errors.AtlassianCredentialsError):
+        assert "connect your Atlassian account" in str(exc_info.value)
+        assert "usr_a" not in str(exc_info.value)
+
+    async def test_a_token_with_no_site_says_so(self):
+        with pytest.raises(errors.AtlassianCredentialsError) as exc_info:
             await _auth(cloud_id=None).authorize(models.Product.JIRA)
+
+        assert "no sites" in str(exc_info.value)
+        assert "usr_a" not in str(exc_info.value)

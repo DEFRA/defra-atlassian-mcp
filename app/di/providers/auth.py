@@ -2,9 +2,9 @@ import dishka
 import fastmcp
 from fastmcp.server import dependencies as fastmcp_deps
 
-from app import config as app_config
 from app.auth import principal as principal_module
 from app.auth import verifier as verifier_port
+from app.config import http as http_config
 from app.identity import service as identity_service
 from app.infra.auth import personal_token
 from app.infra.rest.auth import resolver as resolver_module
@@ -22,7 +22,7 @@ class AuthProvider(dishka.Provider):
     @dishka.provide(scope=dishka.Scope.APP)
     def provide_user_resolver(
         self,
-        identity_config: app_config.IdentityConfig,
+        identity_config: http_config.IdentityConfig,
         identity: identity_service.IdentityService,
         token_verifier: verifier_port.TokenVerifier,
     ) -> resolver_module.UserResolver:
