@@ -1,7 +1,7 @@
 import dishka
 from pymongo.asynchronous import database
 
-from app import config as app_config
+from app.config import http as http_config
 from app.integration.atlassian import access_request_service
 from app.integration.atlassian import guard as guard_module
 from app.integration.atlassian import mongo_store as approval_mongo_store
@@ -50,11 +50,11 @@ class AtlassianProvider(dishka.Provider):
 
     @dishka.provide(scope=dishka.Scope.APP)
     def provide_static_allowlist(
-        self, config: app_config.AppConfig
+        self, config: http_config.HttpSettings
     ) -> guard_module.StaticAllowlistSource:
         """Built in both RESOURCE_GUARD_MODEs: the admin endpoint reports it
         either way, and in config_list mode it is what is enforced."""
-        return guard_module.StaticAllowlistSource.from_csv(
+        return guard_module.StaticAllowlistSource(
             config.resource_guard_allowed_jira_projects,
             config.resource_guard_allowed_confluence_spaces,
         )

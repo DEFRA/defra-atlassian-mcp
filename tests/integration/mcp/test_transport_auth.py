@@ -109,6 +109,7 @@ class TestAcceptsAValidToken:
 
             assert {t.name for t in tools} == {
                 "list_spaces",
+                "list_allowed_keys",
                 "search_jira_issues",
                 "get_jira_issue",
                 "list_confluence_pages",

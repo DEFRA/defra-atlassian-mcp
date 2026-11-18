@@ -3,6 +3,8 @@ from typing import Literal
 import pydantic
 import pydantic_settings
 
+from app.config import base
+
 
 class AtlassianConfig(pydantic_settings.BaseSettings):
     """Atlassian OAuth 2.0 (3LO) and API settings.
@@ -55,7 +57,16 @@ class IdentityConfig(pydantic_settings.BaseSettings):
     )
 
 
-class AppConfig(pydantic_settings.BaseSettings):
+class HttpSettings(base.BaseAtlassianSettings):
+    """Settings for the HTTP entry point (FastAPI + streamable-HTTP MCP).
+
+    Unlike the base and stdio settings, this reads a cwd-relative .env: the
+    HTTP server runs from the repo root (or a container's working directory)
+    where one is expected. RESOURCE_GUARD_ALLOWED_JIRA_PROJECTS /
+    RESOURCE_GUARD_ALLOWED_CONFLUENCE_SPACES are inherited from the base,
+    required, and may be empty (that product is denied, with a warning).
+    """
+
     # extra="ignore" (not "forbid"): pydantic-settings' env source scans the whole
     # process environment, not just this model's declared fields, so "forbid" would
     # hard-fail on any unrelated var a real deployment sets (AWS_*, OTEL_*, ...).
@@ -67,7 +78,6 @@ class AppConfig(pydantic_settings.BaseSettings):
     mongo_uri: str | None = None
     mongo_truststore: str = "TRUSTSTORE_CDP_ROOT_CA"
     aws_endpoint_url: str | None = None
-    http_proxy: pydantic.HttpUrl | None = None
     tracing_header: str = "x-cdp-request-id"
     base_url: pydantic.HttpUrl = pydantic.Field(..., alias="BASE_URL")
     server_name: str = pydantic.Field("atlassian-mcp", alias="SERVER_NAME")
@@ -87,12 +97,6 @@ class AppConfig(pydantic_settings.BaseSettings):
     # any other value fails at startup rather than disabling enforcement.
     resource_guard_mode: Literal["config_list", "allow_list"] = pydantic.Field(
         "config_list", alias="RESOURCE_GUARD_MODE"
-    )
-    resource_guard_allowed_jira_projects: str = pydantic.Field(
-        ..., alias="RESOURCE_GUARD_ALLOWED_JIRA_PROJECTS"
-    )
-    resource_guard_allowed_confluence_spaces: str = pydantic.Field(
-        ..., alias="RESOURCE_GUARD_ALLOWED_CONFLUENCE_SPACES"
     )
 
     atlassian_config: AtlassianConfig = pydantic.Field(default_factory=AtlassianConfig)  # type: ignore

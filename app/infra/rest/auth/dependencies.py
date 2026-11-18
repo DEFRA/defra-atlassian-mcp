@@ -6,8 +6,8 @@ import dishka
 import fastapi
 from dishka.integrations import fastapi as dishka_fastapi
 
-from app import config as app_config
 from app.auth import principal as principal_module
+from app.config import http as http_config
 from app.identity import service as identity_service
 from app.infra.rest.auth import resolver as resolver_module
 
@@ -24,7 +24,7 @@ async def get_principal(
 async def get_trusted_principal(
     request: fastapi.Request,
     identity: dishka.FromDishka[identity_service.IdentityService],
-    identity_config: dishka.FromDishka[app_config.IdentityConfig],
+    identity_config: dishka.FromDishka[http_config.IdentityConfig],
 ) -> principal_module.Principal:
     """Always resolves via the trusted header, independent of REST_AUTH_MODE.
 

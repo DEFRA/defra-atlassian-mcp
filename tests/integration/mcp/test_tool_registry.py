@@ -10,6 +10,7 @@ from tests.support import app as test_app
 
 _EXPECTED_SCHEMAS = {
     "list_spaces": set(),
+    "list_allowed_keys": set(),
     "search_jira_issues": {"project_key", "text", "status", "limit"},
     "get_jira_issue": {"issue_key"},
     "list_confluence_pages": {"space_key", "query", "limit"},
@@ -18,6 +19,7 @@ _EXPECTED_SCHEMAS = {
 
 _EXPECTED_REQUIRED = {
     "list_spaces": set(),
+    "list_allowed_keys": set(),
     "search_jira_issues": {"project_key"},
     "get_jira_issue": {"issue_key"},
     "list_confluence_pages": {"space_key"},
@@ -25,12 +27,36 @@ _EXPECTED_REQUIRED = {
 }
 
 
+_CORE_TOOLS = {
+    "search_jira_issues",
+    "get_jira_issue",
+    "list_confluence_pages",
+    "get_confluence_page",
+}
+
+
 class TestRegistration:
-    async def test_exposes_exactly_the_atlassian_tools(self):
-        async with test_app.mcp_registry_client() as client:
+    async def test_config_list_mode_exposes_the_static_allowlist_tool(self):
+        async with test_app.mcp_registry_client(
+            resource_guard_mode="config_list"
+        ) as client:
             tools = await client.list_tools()
 
-            assert {t.name for t in tools} == set(_EXPECTED_SCHEMAS)
+            assert {t.name for t in tools} == _CORE_TOOLS | {
+                "list_spaces",
+                "list_allowed_keys",
+            }
+
+    async def test_allow_list_mode_does_not_expose_the_static_allowlist_tool(self):
+        """In allow_list mode the static list is not what is enforced, so a
+        tool reporting it would mislead; list_spaces reports the user's
+        approvals instead."""
+        async with test_app.mcp_registry_client(
+            resource_guard_mode="allow_list"
+        ) as client:
+            tools = await client.list_tools()
+
+            assert {t.name for t in tools} == _CORE_TOOLS | {"list_spaces"}
 
 
 class TestToolSchema:

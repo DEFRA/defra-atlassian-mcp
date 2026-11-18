@@ -21,7 +21,7 @@ cp .env.example .env  # then fill in ATLASSIAN_CLIENT_ID, ATLASSIAN_CLIENT_SECRE
 
 ## Configuration
 
-The app is configured via environment variables, managed by Pydantic `BaseSettings` in `app/config.py`. See `.env.example` for a filled-in starting point.
+The app is configured via environment variables, managed by Pydantic `BaseSettings` in `app/config/` (`http.py` for this server, `base.py` for settings shared with the stdio entry point). See `.env.example` for a filled-in starting point.
 
 | Variable | Default | Description |
 | :--- | :--- | :--- |

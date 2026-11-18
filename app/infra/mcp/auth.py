@@ -11,7 +11,7 @@ from app.auth import verifier as verifier_port
 
 class _McpTokenVerifier(fastmcp_auth.TokenVerifier):
     """Resolves app.auth.verifier.TokenVerifier from the Dishka container on
-    every call, rather than once at construction time. build_mcp_app() runs
+    every call, rather than once at construction time. build_server() runs
     before the container's lifespan has opened its APP-scoped providers (the
     Mongo client among them), so nothing can be resolved eagerly here — only
     once real requests start arriving is the container guaranteed to be

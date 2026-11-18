@@ -31,15 +31,15 @@ import httpx2
 import pydantic
 from dishka.integrations import fastapi as dishka_fastapi
 
-from app import config as app_config
+from app.config import http as http_config
 from app.di.providers import auth, identity, integration, request_scope, settings
 from app.entrypoints import http as entrypoint
 from app.identity import ports as identity_ports
 from app.identity import service as identity_service
 from app.infra.mcp import dishka_inject
-from app.infra.mcp import mcp as mcp_module
-from app.infra.mcp import tools as atlassian_tools
 from app.infra.rest.auth import dependencies as auth_deps
+from app.integration.atlassian import guard as guard_module
+from app.integration.atlassian import models as atlassian_models
 from app.integration.atlassian import ports as atlassian_ports
 from app.integration.linking import models as linking_models
 from app.integration.linking import ports as linking_ports
@@ -60,7 +60,7 @@ class TestOverrides(dishka.Provider):
     def __init__(
         self,
         *,
-        cfg: app_config.AppConfig,
+        cfg: http_config.HttpSettings,
         tokens: linking_ports.TokenStore,
         states: linking_ports.OAuthStateStore,
         access_requests: atlassian_ports.SpaceAccessRequestStore,
@@ -78,7 +78,7 @@ class TestOverrides(dishka.Provider):
         self._transport = transport
 
     @dishka.provide(override=True)
-    def provide_config(self) -> app_config.AppConfig:
+    def provide_config(self) -> http_config.HttpSettings:
         return self._cfg
 
     @dishka.provide(override=True)
@@ -111,7 +111,7 @@ class Overrides:
     """Handed back to the test so it can seed state through the same fakes
     the app is wired to, and inspect what went out to the vendor."""
 
-    cfg: app_config.AppConfig
+    cfg: http_config.HttpSettings
     tokens: linking_ports.TokenStore
     states: linking_ports.OAuthStateStore
     access_requests: atlassian_ports.SpaceAccessRequestStore
@@ -120,10 +120,16 @@ class Overrides:
     transport: httpx_helpers.MockTransport
 
 
-def real_config(**field_overrides: object) -> app_config.AppConfig:
-    """A real AppConfig built from fixed test values, mirroring conftest's
+_ALLOWLIST_FIELDS = {
+    "resource_guard_allowed_jira_projects": atlassian_models.Product.JIRA,
+    "resource_guard_allowed_confluence_spaces": atlassian_models.Product.CONFLUENCE,
+}
+
+
+def real_config(**field_overrides: object) -> http_config.HttpSettings:
+    """A real HttpSettings built from fixed test values, mirroring conftest's
     fake_config -- no MagicMock, no env var coupling."""
-    atlassian_cfg = app_config.AtlassianConfig.model_construct(
+    atlassian_cfg = http_config.AtlassianConfig.model_construct(
         auth_base="https://auth.atlassian.com",
         api_base="https://api.atlassian.com",
         client_id="test-client-id",
@@ -138,15 +144,24 @@ def real_config(**field_overrides: object) -> app_config.AppConfig:
         "resource_guard_mode": "config_list",
         "resource_guard_allowed_jira_projects": "FARM",
         "resource_guard_allowed_confluence_spaces": "FARM",
+        "request_timeout_seconds": 30,
         "atlassian_config": atlassian_cfg,
     }
     defaults.update(field_overrides)
-    return app_config.AppConfig.model_construct(**defaults)
+    # model_construct skips validation, so parse the allowlists here the way
+    # the settings validator would -- tests pass them as CSV strings.
+    for field, product in _ALLOWLIST_FIELDS.items():
+        value = defaults.get(field)
+        if isinstance(value, str):
+            defaults[field] = guard_module.parse_key_list(
+                value, product, env_var=field.upper()
+            )
+    return http_config.HttpSettings.model_construct(**defaults)
 
 
 def _build_container(
     *,
-    cfg: app_config.AppConfig,
+    cfg: http_config.HttpSettings,
     responses: list[httpx2.Response | Exception],
     tokens: linking_ports.TokenStore | None,
     states: linking_ports.OAuthStateStore | None,
@@ -195,7 +210,7 @@ def _build_container(
 @contextlib.contextmanager
 def rest_client(
     *,
-    cfg: app_config.AppConfig | None = None,
+    cfg: http_config.HttpSettings | None = None,
     responses: list[httpx2.Response | Exception] | None = None,
     tokens: linking_ports.TokenStore | None = None,
     states: linking_ports.OAuthStateStore | None = None,
@@ -235,7 +250,7 @@ def rest_client(
 @contextlib.asynccontextmanager
 async def mcp_registry_client(
     *,
-    cfg: app_config.AppConfig | None = None,
+    cfg: http_config.HttpSettings | None = None,
     **cfg_overrides: object,
 ) -> collections.abc.AsyncIterator[fastmcp.Client]:
     """A cheap in-memory `fastmcp.Client` (FastMCPTransport -- no sockets, no
@@ -253,8 +268,7 @@ async def mcp_registry_client(
         pats=None,
     )
     async with container:
-        app = mcp_module.build_mcp_app(container, resolved_cfg)
-        atlassian_tools.register_tools(app)
+        app = entrypoint.build_mcp_server(container, resolved_cfg)
         async with fastmcp.Client(app) as client:
             yield client
 
@@ -285,7 +299,7 @@ def _asgi_httpx_client_factory(
 @contextlib.asynccontextmanager
 async def mcp_client(
     *,
-    cfg: app_config.AppConfig | None = None,
+    cfg: http_config.HttpSettings | None = None,
     responses: list[httpx2.Response | Exception] | None = None,
     tokens: linking_ports.TokenStore | None = None,
     states: linking_ports.OAuthStateStore | None = None,

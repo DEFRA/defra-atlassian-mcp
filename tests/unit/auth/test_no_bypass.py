@@ -22,7 +22,7 @@ import pathlib
 
 import pytest
 
-from app import config as app_config
+from app.config import http as http_config
 
 _REPO_ROOT = pathlib.Path(__file__).resolve().parents[3]
 _IDENTITY_AUTH_DIRS = (
@@ -51,8 +51,8 @@ class TestNoSignatureVerificationBypass:
 
     def test_app_config_has_no_dev_auth_bypass_fields(self) -> None:
         forbidden = {"dev_auth_enabled", "dev_auth_jwt_secret"}
-        present = forbidden & set(app_config.AppConfig.model_fields)
-        assert not present, f"AppConfig still declares bypass field(s): {present}"
+        present = forbidden & set(http_config.HttpSettings.model_fields)
+        assert not present, f"HttpSettings still declares bypass field(s): {present}"
 
     @pytest.mark.parametrize("needle", ['algorithms=["none"]', "alg: none", "'none'"])
     def test_no_unsigned_alg_none_handling_in_the_identity_path(

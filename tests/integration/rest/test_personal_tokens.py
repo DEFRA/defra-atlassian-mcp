@@ -14,10 +14,10 @@ import fastapi
 import fastapi.testclient
 from dishka.integrations import fastapi as dishka_fastapi
 
-from app import config as app_config
 from app.auth import principal as principal_module
 from app.auth import verifier as verifier_port
 from app.common import tracing
+from app.config import http as http_config
 from app.identity import ports
 from app.identity import service as identity_service
 from app.infra.auth import personal_token
@@ -74,8 +74,8 @@ class _Provider(dishka.Provider):
         return resolver_module.PersonalTokenUserResolver(token_verifier)
 
     @dishka.provide
-    def provide_identity_config(self) -> app_config.IdentityConfig:
-        return app_config.IdentityConfig.model_construct()
+    def provide_identity_config(self) -> http_config.IdentityConfig:
+        return http_config.IdentityConfig.model_construct()
 
 
 def _build_app() -> fastapi.FastAPI:
@@ -93,7 +93,7 @@ def _build_app() -> fastapi.FastAPI:
     app.add_middleware(tracing.ContainerMiddleware)
     app.add_middleware(
         tracing.TraceIdMiddleware,
-        cfg=app_config.AppConfig.model_construct(tracing_header="x-cdp-request-id"),
+        cfg=http_config.HttpSettings.model_construct(tracing_header="x-cdp-request-id"),
     )
     app.include_router(token_router.router, prefix="/tokens")
 

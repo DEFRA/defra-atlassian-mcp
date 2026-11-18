@@ -10,7 +10,7 @@ from tests.support import vcr_config
 
 def _make_client(config) -> oauth_client.OAuthClient:
     return oauth_client.OAuthClient(
-        config=config,
+        config=config.atlassian_config,
         client=http_client.create_async_client(
             tracing_header=config.tracing_header,
             trace_id="test-trace",

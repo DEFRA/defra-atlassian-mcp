@@ -6,8 +6,8 @@ import dishka
 import pymongo
 from pymongo.asynchronous import database
 
-from app import config as app_config
 from app.common import mongo, tls
+from app.config import http as http_config
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +22,7 @@ class InfrastructureProvider(dishka.Provider):
     @dishka.provide(scope=dishka.Scope.APP)
     async def provide_mongo_client(
         self,
-        config: app_config.AppConfig,
+        config: http_config.HttpSettings,
         custom_ca_certs: dict[str, str],
     ) -> AsyncIterator[pymongo.AsyncMongoClient]:  # type: ignore[type-arg]
         cert = custom_ca_certs.get(config.mongo_truststore)

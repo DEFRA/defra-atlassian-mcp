@@ -1,3 +1,10 @@
+"""The MCP tools shared by both entry points.
+
+Nothing here may import HTTP-only code (the approvals workflow, OAuth
+linking, Principal): the stdio entry point registers these same functions.
+HTTP-only tools live in app.infra.mcp.http_tools.
+"""
+
 import functools
 from collections.abc import Awaitable, Callable
 from typing import Any
@@ -6,25 +13,20 @@ import dishka
 import fastmcp
 from fastmcp import exceptions as fastmcp_exceptions
 
-from app.auth import principal as principal_module
 from app.infra.mcp import dishka_inject
-from app.integration.atlassian import access_request_service as approvals_module
-from app.integration.atlassian import errors
+from app.integration.atlassian import errors, models
 from app.integration.atlassian import guard as guard_module
-from app.integration.atlassian import models as approval_models
 from app.integration.atlassian.confluence import service as confluence_module
 from app.integration.atlassian.jira import service as jira_module
-from app.integration.linking import exceptions as linking_exceptions
 
-_NOT_LINKED_MESSAGE = (
-    "No Atlassian credentials found. Please connect your Atlassian account "
-    "in the portal first."
-)
-_NO_SITE_MESSAGE = "The linked Atlassian account has access to no sites."
 _UNAVAILABLE_MESSAGE = "Atlassian is unreachable. Please try again later."
 
 # Domain exceptions whose own message is already written for the caller.
+# AtlassianCredentialsError is among them: each AtlassianAuth knows what the
+# caller can do about missing credentials (link an account in the portal,
+# or fix the API token in the stdio settings), so it writes the message.
 _PASS_THROUGH_ERRORS = (
+    errors.AtlassianCredentialsError,
     guard_module.ForbiddenResourceError,
     jira_module.IssueNotFoundError,
     confluence_module.SpaceNotFoundError,
@@ -32,7 +34,7 @@ _PASS_THROUGH_ERRORS = (
 )
 
 
-def _translate_errors(
+def translate_errors(
     func: Callable[..., Awaitable[str]],
 ) -> Callable[..., Awaitable[str]]:
     """Turn domain exceptions into the ToolError envelope an MCP client sees.
@@ -46,10 +48,6 @@ def _translate_errors(
     async def wrapper(*args: Any, **kwargs: Any) -> str:
         try:
             return await func(*args, **kwargs)
-        except errors.AtlassianCredentialsError as err:
-            raise fastmcp_exceptions.ToolError(_NOT_LINKED_MESSAGE) from err
-        except linking_exceptions.NoAccessibleSiteError as err:
-            raise fastmcp_exceptions.ToolError(_NO_SITE_MESSAGE) from err
         except errors.AtlassianUnavailableError as err:
             raise fastmcp_exceptions.ToolError(_UNAVAILABLE_MESSAGE) from err
         except errors.AtlassianApiError as err:
@@ -62,34 +60,7 @@ def _translate_errors(
 
 
 @dishka_inject.inject
-@_translate_errors
-async def list_spaces(
-    _ctx: fastmcp.Context,
-    approvals: dishka.FromDishka[approvals_module.SpaceAccessRequestService],
-    principal: dishka.FromDishka[principal_module.Principal],
-) -> str:
-    """List the Atlassian spaces and project keys you have requested, with the approval status of each for Jira and Confluence."""
-    requests = await approvals.list_for_user(principal.user_id)
-
-    if not requests:
-        return (
-            "No spaces requested. Request access to a space in the portal "
-            "before using the Jira or Confluence tools."
-        )
-
-    lines = []
-    for request in sorted(requests, key=lambda r: r.space_key):
-        statuses = ", ".join(
-            f"{product.value}: {request.product(product).status.value}"
-            for product in approval_models.Product
-        )
-        lines.append(f"{request.space_key} ({statuses})")
-
-    return "\n".join(lines)
-
-
-@dishka_inject.inject
-@_translate_errors
+@translate_errors
 async def search_jira_issues(
     project_key: str,
     _ctx: fastmcp.Context,
@@ -108,7 +79,7 @@ async def search_jira_issues(
 
 
 @dishka_inject.inject
-@_translate_errors
+@translate_errors
 async def get_jira_issue(
     issue_key: str,
     _ctx: fastmcp.Context,
@@ -119,7 +90,7 @@ async def get_jira_issue(
 
 
 @dishka_inject.inject
-@_translate_errors
+@translate_errors
 async def list_confluence_pages(
     space_key: str,
     _ctx: fastmcp.Context,
@@ -136,7 +107,7 @@ async def list_confluence_pages(
 
 
 @dishka_inject.inject
-@_translate_errors
+@translate_errors
 async def get_confluence_page(
     space_key: str,
     page_id: str,
@@ -147,9 +118,33 @@ async def get_confluence_page(
     return await confluence.get_page(space_key, page_id)
 
 
-def register_tools(mcp_app: fastmcp.FastMCP) -> None:
-    mcp_app.tool()(list_spaces)
+@dishka_inject.inject
+@translate_errors
+async def list_allowed_keys(
+    _ctx: fastmcp.Context,
+    allowlist: dishka.FromDishka[guard_module.StaticAllowlistSource],
+) -> str:
+    """List the Jira project keys and Confluence space keys this server is allowed to read. Use these keys with the other tools."""
+    lines = []
+    for product, label in (
+        (models.Product.JIRA, "Jira projects"),
+        (models.Product.CONFLUENCE, "Confluence spaces"),
+    ):
+        keys = sorted(allowlist.keys_for(product))
+        lines.append(f"{label}: {', '.join(keys) if keys else '(none)'}")
+    return "\n".join(lines)
+
+
+def register_core_tools(mcp_app: fastmcp.FastMCP) -> None:
+    """The four Jira/Confluence tools, available on every entry point."""
     mcp_app.tool()(search_jira_issues)
     mcp_app.tool()(get_jira_issue)
     mcp_app.tool()(list_confluence_pages)
     mcp_app.tool()(get_confluence_page)
+
+
+def register_allowlist_tool(mcp_app: fastmcp.FastMCP) -> None:
+    """list_allowed_keys reports the static allowlist, so it is registered
+    only where that list is what is enforced: always on stdio, and on HTTP
+    in RESOURCE_GUARD_MODE=config_list."""
+    mcp_app.tool()(list_allowed_keys)
