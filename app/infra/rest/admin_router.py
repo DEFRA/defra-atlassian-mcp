@@ -28,7 +28,7 @@ class ConfigAllowListResponse(pydantic.BaseModel):
 async def get_config_allow_list(
     _principal: principal_module.Principal = fastapi.Depends(auth_deps.get_principal),
     config: dishka_fastapi.FromDishka[app_config.AppConfig] = ...,  # type: ignore[assignment]
-    allow_list: dishka_fastapi.FromDishka[guard_module.ConfigAllowList] = ...,  # type: ignore[assignment]
+    allow_list: dishka_fastapi.FromDishka[guard_module.StaticAllowlistSource] = ...,  # type: ignore[assignment]
 ) -> ConfigAllowListResponse:
     """The hand-managed, per-product allow list
     (RESOURCE_GUARD_ALLOWED_JIRA_PROJECTS / RESOURCE_GUARD_ALLOWED_CONFLUENCE_SPACES),

@@ -25,7 +25,7 @@ _UNAVAILABLE_MESSAGE = "Atlassian is unreachable. Please try again later."
 
 # Domain exceptions whose own message is already written for the caller.
 _PASS_THROUGH_ERRORS = (
-    guard_module.ForbiddenSpaceError,
+    guard_module.ForbiddenResourceError,
     jira_module.IssueNotFoundError,
     confluence_module.SpaceNotFoundError,
     confluence_module.PageNotFoundError,
@@ -94,14 +94,12 @@ async def search_jira_issues(
     project_key: str,
     _ctx: fastmcp.Context,
     jira: dishka.FromDishka[jira_module.JiraService],
-    principal: dishka.FromDishka[principal_module.Principal],
     text: str | None = None,
     status: str | None = None,
     limit: int = 25,
 ) -> str:
     """Search issues in a Jira project, most recently updated first. Optionally filter by free text and/or status name."""
     return await jira.search_issues(
-        principal.user_id,
         project_key,
         text=text,
         status=status,
@@ -115,10 +113,9 @@ async def get_jira_issue(
     issue_key: str,
     _ctx: fastmcp.Context,
     jira: dishka.FromDishka[jira_module.JiraService],
-    principal: dishka.FromDishka[principal_module.Principal],
 ) -> str:
     """Return one Jira issue's fields and description, given its key (e.g. FARM-123)."""
-    return await jira.get_issue(principal.user_id, issue_key)
+    return await jira.get_issue(issue_key)
 
 
 @dishka_inject.inject
@@ -127,13 +124,11 @@ async def list_confluence_pages(
     space_key: str,
     _ctx: fastmcp.Context,
     confluence: dishka.FromDishka[confluence_module.ConfluenceService],
-    principal: dishka.FromDishka[principal_module.Principal],
     query: str | None = None,
     limit: int = 25,
 ) -> str:
     """List pages in a Confluence space, most recently modified first. Optionally filter by free text."""
     return await confluence.list_pages(
-        principal.user_id,
         space_key,
         query=query,
         limit=limit,
@@ -147,10 +142,9 @@ async def get_confluence_page(
     page_id: str,
     _ctx: fastmcp.Context,
     confluence: dishka.FromDishka[confluence_module.ConfluenceService],
-    principal: dishka.FromDishka[principal_module.Principal],
 ) -> str:
     """Return one Confluence page's content as text. The space key is required so access can be checked before the page is fetched."""
-    return await confluence.get_page(principal.user_id, space_key, page_id)
+    return await confluence.get_page(space_key, page_id)
 
 
 def register_tools(mcp_app: fastmcp.FastMCP) -> None:

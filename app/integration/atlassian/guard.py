@@ -1,110 +1,146 @@
-import abc
+"""Access policy: which Jira projects and Confluence spaces may be read.
+
+Every public method on JiraService and ConfluenceService calls
+AccessPolicy.check as its first statement, before any credentials are
+fetched or vendor call is made. The product is part of the question: a key
+allowed for Jira grants nothing in Confluence.
+
+There is one policy, AllowlistAccessPolicy, over two sources:
+
+- StaticAllowlistSource -- a fixed, validated list from settings. Used by
+  the stdio entry point, and by the HTTP entry point in ``config_list`` mode.
+- ApprovedRequestsAllowlistSource (approved_requests_source.py) -- the
+  calling user's approved access requests. HTTP only, ``allow_list`` mode.
+
+Neither the policy nor the services see a user id. Where the answer depends
+on the user, the source is built per request already bound to them.
+"""
+
 import dataclasses
 import logging
+import re
+from typing import Protocol
 
-from app.integration.atlassian import models, ports
+from app.integration.atlassian import models
 
 logger = logging.getLogger(__name__)
 
+# Matching is exact and case-sensitive. Jira project keys are upper case;
+# Confluence space keys are alphanumeric, which deliberately excludes
+# personal spaces (``~accountid``).
+_KEY_PATTERNS = {
+    models.Product.JIRA: re.compile(r"[A-Z][A-Z0-9_]+\Z"),
+    models.Product.CONFLUENCE: re.compile(r"[A-Za-z0-9]+\Z"),
+}
 
-class ForbiddenSpaceError(Exception):
-    """Raised by a SpaceGuard to deny a user access to a space for a
-    product."""
+
+class ForbiddenResourceError(Exception):
+    """Raised by an AccessPolicy to deny access to a project or space for a
+    product. Its message is written for the caller (it reaches an LLM as a
+    ToolError)."""
 
 
-def _parse_csv(value: str, *, env_var: str) -> frozenset[str]:
+# The old name, kept for existing imports. Same class.
+ForbiddenSpaceError = ForbiddenResourceError
+
+
+class AllowlistSource(Protocol):
+    """Answers whether one key is allowed for one product."""
+
+    async def contains(self, product: models.Product, key: str) -> bool: ...
+
+    def denial_message(self, product: models.Product, key: str) -> str:
+        """What to tell the caller when ``key`` is not allowed -- each source
+        knows what the caller could do about it."""
+        ...
+
+
+class AccessPolicy(Protocol):
+    """Return None to allow; raise ForbiddenResourceError to deny."""
+
+    async def check(self, product: models.Product, key: str) -> None: ...
+
+
+class AllowlistAccessPolicy:
+    """Allows exactly the keys its source contains for that product."""
+
+    def __init__(self, source: AllowlistSource) -> None:
+        self._source = source
+
+    async def check(self, product: models.Product, key: str) -> None:
+        if not await self._source.contains(product, key):
+            raise ForbiddenResourceError(self._source.denial_message(product, key))
+
+
+def is_valid_key(product: models.Product, key: str) -> bool:
+    return _KEY_PATTERNS[product].match(key) is not None
+
+
+def parse_key_list(
+    value: str, product: models.Product, *, env_var: str
+) -> frozenset[str]:
+    """Parse a comma-separated key list from settings.
+
+    Whitespace and empty entries are dropped. A wildcard or a malformed key
+    is rejected with ValueError rather than silently never matching, so a
+    typo is caught at startup. An empty list is allowed but logged, since a
+    variable left empty by accident locks everyone out of that product.
+    """
     keys = frozenset(key.strip() for key in value.split(",") if key.strip())
+
+    invalid = sorted(key for key in keys if not is_valid_key(product, key))
+    if invalid:
+        msg = (
+            f"{env_var} contains invalid {product.value} keys: {', '.join(invalid)}. "
+            "Wildcards are not supported; list each key exactly."
+        )
+        raise ValueError(msg)
+
     if not keys:
         logger.warning(
-            "%s has no entries -- every space will be denied for this product "
-            "under config_list mode.",
+            "%s has no entries -- every %s key will be denied.",
             env_var,
+            product.value,
         )
     return keys
 
 
 @dataclasses.dataclass(frozen=True)
-class ConfigAllowList:
-    """The hand-managed, per-product allow list backing
-    ConfigAllowListSpaceGuard -- parsed once at startup from
-    RESOURCE_GUARD_ALLOWED_JIRA_PROJECTS / RESOURCE_GUARD_ALLOWED_CONFLUENCE_SPACES,
-    shared with the read-only /admin/resource-guard endpoint so the portal
-    can display the same values that are actually enforced. Both env vars
-    are required (though either may be set empty) -- there is no default,
-    so a deployment that forgets to set them fails fast at startup rather
-    than silently denying everything."""
+class StaticAllowlistSource:
+    """A fixed, per-product allowlist from settings
+    (RESOURCE_GUARD_ALLOWED_JIRA_PROJECTS /
+    RESOURCE_GUARD_ALLOWED_CONFLUENCE_SPACES). Every caller gets the same
+    access. Also read by GET /admin/resource-guard/allowed-spaces so the
+    portal shows the values that are actually enforced."""
 
     jira_projects: frozenset[str]
     confluence_spaces: frozenset[str]
 
     @classmethod
-    def from_csv(cls, jira_csv: str, confluence_csv: str) -> "ConfigAllowList":
+    def from_csv(cls, jira_csv: str, confluence_csv: str) -> "StaticAllowlistSource":
         return cls(
-            _parse_csv(jira_csv, env_var="RESOURCE_GUARD_ALLOWED_JIRA_PROJECTS"),
-            _parse_csv(
-                confluence_csv, env_var="RESOURCE_GUARD_ALLOWED_CONFLUENCE_SPACES"
+            parse_key_list(
+                jira_csv,
+                models.Product.JIRA,
+                env_var="RESOURCE_GUARD_ALLOWED_JIRA_PROJECTS",
+            ),
+            parse_key_list(
+                confluence_csv,
+                models.Product.CONFLUENCE,
+                env_var="RESOURCE_GUARD_ALLOWED_CONFLUENCE_SPACES",
             ),
         )
 
+    def keys_for(self, product: models.Product) -> frozenset[str]:
+        if product is models.Product.JIRA:
+            return self.jira_projects
+        return self.confluence_spaces
 
-class SpaceGuard(abc.ABC):
-    """Governance seam: decide whether a user may access a given space or
-    project key, for a given Atlassian product.
+    async def contains(self, product: models.Product, key: str) -> bool:
+        return key in self.keys_for(product)
 
-    Every public method on JiraService and ConfluenceService calls this as
-    its first statement, before any token is fetched or vendor call is made.
-    The product is part of the question, not an afterthought: a space
-    approved for Jira grants nothing in Confluence.
-    """
-
-    @abc.abstractmethod
-    async def check(
-        self, user_id: str, space_key: str, product: models.Product
-    ) -> None:
-        """Return None to allow; raise ForbiddenSpaceError to deny."""
-
-
-class ConfigAllowListSpaceGuard(SpaceGuard):
-    """Permits access to space/project keys listed per product in
-    ConfigAllowList. Unlike AllowListSpaceGuard, this list is static config
-    managed by hand outside the admin portal -- there's no per-user
-    approval, but a key listed for one product still grants nothing in the
-    other."""
-
-    def __init__(self, allow_list: ConfigAllowList) -> None:
-        self._by_product = {
-            models.Product.JIRA: allow_list.jira_projects,
-            models.Product.CONFLUENCE: allow_list.confluence_spaces,
-        }
-
-    async def check(
-        self,
-        user_id: str,  # noqa: ARG002
-        space_key: str,
-        product: models.Product,
-    ) -> None:
-        if space_key not in self._by_product[product]:
-            msg = (
-                f"{space_key} is not in the configured resource guard allow "
-                f"list for {product.value}."
-            )
-            raise ForbiddenSpaceError(msg)
-
-
-class AllowListSpaceGuard(SpaceGuard):
-    """Permits access only where the user's SpaceAccessRequest for that space
-    has been approved for that product (see
-    SpaceAccessRequestStore.is_approved)."""
-
-    def __init__(self, store: ports.SpaceAccessRequestStore) -> None:
-        self._store = store
-
-    async def check(
-        self, user_id: str, space_key: str, product: models.Product
-    ) -> None:
-        if not await self._store.is_approved(user_id, space_key, product):
-            msg = (
-                f"No approved access request for {space_key} "
-                f"in {product.value}. Request access in the portal first."
-            )
-            raise ForbiddenSpaceError(msg)
+    def denial_message(self, product: models.Product, key: str) -> str:
+        return (
+            f"{key} is not in the configured resource guard allow list "
+            f"for {product.value}."
+        )

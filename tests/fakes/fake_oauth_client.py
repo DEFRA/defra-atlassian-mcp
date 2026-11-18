@@ -5,7 +5,7 @@ class FakeOAuthClient:
     """Returns a fixed access token per user, bypassing HTTP entirely."""
 
     def __init__(
-        self, default_token: str | None = None, cloud_id: str = "test-cloud-id"
+        self, default_token: str | None = None, cloud_id: str | None = "test-cloud-id"
     ) -> None:
         self._token = default_token
         self._cloud_id = cloud_id

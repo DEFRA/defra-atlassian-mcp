@@ -22,26 +22,25 @@ class PageNotFoundError(Exception):
 class ConfluenceService:
     """Read-only Confluence access, gated per space key.
 
-    Every public method calls the guard first, before a token is fetched or
-    any vendor call is made.
+    Every public method calls the access policy first, before credentials
+    are fetched or any vendor call is made.
     """
 
     def __init__(
         self,
         client: atlassian_client.AtlassianClient,
-        guard: guard_module.SpaceGuard,
+        policy: guard_module.AccessPolicy,
     ) -> None:
         self._client = client
-        self._guard = guard
+        self._policy = policy
 
     async def list_pages(
         self,
-        user_id: str,
         space_key: str,
         query: str | None = None,
         limit: int = _DEFAULT_LIMIT,
     ) -> str:
-        await self._guard.check(user_id, space_key, models.Product.CONFLUENCE)
+        await self._policy.check(models.Product.CONFLUENCE, space_key)
 
         cql = f"space = {_quote(space_key)} AND type = page"
         if query:
@@ -49,7 +48,6 @@ class ConfluenceService:
         cql += " ORDER BY lastmodified DESC"
 
         payload = await self._client.get(
-            user_id,
             models.Product.CONFLUENCE,
             "/wiki/rest/api/content/search",
             params={"cql": cql, "limit": _clamp(limit)},
@@ -63,15 +61,15 @@ class ConfluenceService:
             f"{result.get('id', '')} {result.get('title', '')}" for result in results
         )
 
-    async def get_page(self, user_id: str, space_key: str, page_id: str) -> str:
+    async def get_page(self, space_key: str, page_id: str) -> str:
         """Fetch one page's content.
 
-        The space is passed explicitly so the guard can run before any vendor
+        The space is passed explicitly so the policy can run before any vendor
         call, but the page is then checked to actually live in that space --
         otherwise naming a space you are approved for would read a page from
         one you are not.
         """
-        await self._guard.check(user_id, space_key, models.Product.CONFLUENCE)
+        await self._policy.check(models.Product.CONFLUENCE, space_key)
 
         # The id is interpolated into the request path, so only digits may
         # reach it -- a slash or dot segment could address another resource.
@@ -79,10 +77,9 @@ class ConfluenceService:
             msg = f"{page_id} is not a Confluence page id (expected digits)."
             raise PageNotFoundError(msg)
 
-        space_id = await self._resolve_space_id(user_id, space_key)
+        space_id = await self._resolve_space_id(space_key)
 
         page = await self._client.get(
-            user_id,
             models.Product.CONFLUENCE,
             f"/wiki/api/v2/pages/{page_id}",
             params={"body-format": "atlas_doc_format"},
@@ -94,9 +91,8 @@ class ConfluenceService:
 
         return _render_page(page)
 
-    async def _resolve_space_id(self, user_id: str, space_key: str) -> str:
+    async def _resolve_space_id(self, space_key: str) -> str:
         payload = await self._client.get(
-            user_id,
             models.Product.CONFLUENCE,
             "/wiki/api/v2/spaces",
             params={"keys": space_key, "limit": 1},
