@@ -1,10 +1,10 @@
 [project]
-name = "atlassian-mcp"
+name = "defra-atlassian-mcp"
 version = "0.1.0"
-description = "atlassian-mcp"
+description = "defra-atlassian-mcp"
 readme = "README.md"
 requires-python = ">=3.13"
-# The core install is what the stdio entry point (atlassian-mcp) needs.
+# The core install is what the stdio entry point (defra-atlassian-mcp) needs.
 # Everything only the HTTP server uses is in the "http" extra below.
 dependencies = [
     "dishka==1.10.1",
@@ -15,7 +15,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# The HTTP server (atlassian-mcp-http): FastAPI app, Mongo, ECS logging.
+# The HTTP server (defra-atlassian-mcp-http): FastAPI app, Mongo, ECS logging.
 # The Docker image installs it with --extra http.
 http = [
     "asgi-logger==0.1.0",
@@ -29,7 +29,7 @@ http = [
 dev = [
     # Development and the test suite cover both entry points, so the dev
     # group pulls in the http extra: plain `uv sync` / `uv run` keep working.
-    "atlassian-mcp[http]",
+    "defra-atlassian-mcp[http]",
     "mypy==2.4.1",
     "pytest==9.2.0",
     "pytest-asyncio==1.4.1.post1",
@@ -42,8 +42,8 @@ dev = [
 ]
 
 [project.scripts]
-atlassian-mcp = "app.entrypoints.stdio:main"
-atlassian-mcp-http = "app.entrypoints.http_launcher:main"
+defra-atlassian-mcp = "app.entrypoints.stdio:main"
+defra-atlassian-mcp-http = "app.entrypoints.http_launcher:main"
 
 [build-system]
 requires = ["hatchling"]

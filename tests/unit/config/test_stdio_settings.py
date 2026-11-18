@@ -119,7 +119,7 @@ class TestEnvFile:
             stdio_config.StdioSettings()  # type: ignore[call-arg]
 
     def test_reads_the_env_file_it_is_given(self, tmp_path):
-        env_file = tmp_path / "atlassian-mcp.env"
+        env_file = tmp_path / "defra-atlassian-mcp.env"
         env_file.write_text("\n".join(f"{k}={v}" for k, v in _REQUIRED_ENV.items()))
 
         settings = stdio_config.StdioSettings(_env_file=env_file)  # type: ignore[call-arg]
@@ -127,7 +127,7 @@ class TestEnvFile:
         assert settings.email == "dev@example.com"
 
     def test_process_environment_beats_the_env_file(self, monkeypatch, tmp_path):
-        env_file = tmp_path / "atlassian-mcp.env"
+        env_file = tmp_path / "defra-atlassian-mcp.env"
         env_file.write_text("\n".join(f"{k}={v}" for k, v in _REQUIRED_ENV.items()))
         monkeypatch.setenv("ATLASSIAN_EMAIL", "override@example.com")
 

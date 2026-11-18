@@ -80,7 +80,7 @@ class HttpSettings(base.BaseAtlassianSettings):
     aws_endpoint_url: str | None = None
     tracing_header: str = "x-cdp-request-id"
     base_url: pydantic.HttpUrl = pydantic.Field(..., alias="BASE_URL")
-    server_name: str = pydantic.Field("atlassian-mcp", alias="SERVER_NAME")
+    server_name: str = pydantic.Field("defra-atlassian-mcp", alias="SERVER_NAME")
 
     # "config_list" (default) — the services deny access unless the space
     # key is listed, per product, in RESOURCE_GUARD_ALLOWED_JIRA_PROJECTS /

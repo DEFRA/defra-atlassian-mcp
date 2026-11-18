@@ -4,7 +4,7 @@ stream (one JSON message per line), and logs and configuration errors must
 go to stderr.
 
 The child gets a scrubbed environment and a temporary HOME, so neither the
-developer's shell nor their ~/.config/atlassian-mcp/.env can leak in.
+developer's shell nor their ~/.config/defra-atlassian-mcp/.env can leak in.
 """
 
 import asyncio
@@ -97,7 +97,7 @@ class TestHandshake:
             proc.stdin.close()
             remaining_out, err = await asyncio.wait_for(proc.communicate(), _TIMEOUT)
 
-        assert init["result"]["serverInfo"]["name"] == "atlassian-mcp"
+        assert init["result"]["serverInfo"]["name"] == "defra-atlassian-mcp"
         names = {tool["name"] for tool in listed["result"]["tools"]}
         assert names == {
             "search_jira_issues",
@@ -109,7 +109,7 @@ class TestHandshake:
         for line in remaining_out.decode().splitlines():
             assert json.loads(line).get("jsonrpc") == "2.0", line
         stderr = err.decode()
-        assert "Starting atlassian-mcp (stdio)" in stderr
+        assert "Starting defra-atlassian-mcp (stdio)" in stderr
         assert "s3cret-token-value" not in stderr
 
 
@@ -128,9 +128,9 @@ class TestStartupFailures:
 
     async def test_reads_the_default_env_file_from_the_user_config_dir(self, tmp_path):
         """No --env-file and nothing in the environment: the file under
-        $XDG_CONFIG_HOME/atlassian-mcp/ is used. Proven by it supplying a
+        $XDG_CONFIG_HOME/defra-atlassian-mcp/ is used. Proven by it supplying a
         bad value that fails validation."""
-        config_dir = tmp_path / "config" / "atlassian-mcp"
+        config_dir = tmp_path / "config" / "defra-atlassian-mcp"
         config_dir.mkdir(parents=True)
         (config_dir / ".env").write_text(
             "\n".join(f"{k}={v}" for k, v in _VALID.items())

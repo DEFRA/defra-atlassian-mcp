@@ -90,7 +90,7 @@ jobs:
       - name: Check the stdio command starts and rejects missing config
         run: |
           set +e
-          env -i PATH="$PATH" HOME="$RUNNER_TEMP" uv run --no-sync atlassian-mcp 2> stderr.txt
+          env -i PATH="$PATH" HOME="$RUNNER_TEMP" uv run --no-sync defra-atlassian-mcp 2> stderr.txt
           status=$?
           set -e
           cat stderr.txt
@@ -100,7 +100,7 @@ jobs:
       - name: Check the http command explains the missing extra
         run: |
           set +e
-          uv run --no-sync atlassian-mcp-http 2> stderr.txt
+          uv run --no-sync defra-atlassian-mcp-http 2> stderr.txt
           status=$?
           set -e
           cat stderr.txt
@@ -127,9 +127,9 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
       - name: Build stdio image
-        run: docker build --target stdio --tag atlassian-mcp-stdio:ci .
+        run: docker build --target stdio --tag defra-atlassian-mcp-stdio:ci .
 
       - name: Smoke test stdio image
         run: |
           chmod +x ./scripts/smoke-test-stdio-image.sh
-          ./scripts/smoke-test-stdio-image.sh atlassian-mcp-stdio:ci
+          ./scripts/smoke-test-stdio-image.sh defra-atlassian-mcp-stdio:ci

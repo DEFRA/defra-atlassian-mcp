@@ -36,10 +36,10 @@ class TestHttpSettings:
         assert "dev_auth_enabled" not in http_config.HttpSettings.model_fields
         assert "dev_auth_jwt_secret" not in http_config.HttpSettings.model_fields
 
-    def test_server_name_defaults_to_atlassian_mcp(self) -> None:
+    def test_server_name_defaults_to_defra_atlassian_mcp(self) -> None:
         cfg = _make_config()
 
-        assert cfg.server_name == "atlassian-mcp"
+        assert cfg.server_name == "defra-atlassian-mcp"
 
     def test_the_resource_guard_defaults_to_config_list(self) -> None:
         """config_list is hand-managed CSV config, not the Mongo-backed

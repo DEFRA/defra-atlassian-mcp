@@ -25,7 +25,7 @@ ARG PORT_DEBUG=8086
 ENV PORT=${PORT}
 EXPOSE ${PORT} ${PORT_DEBUG}
 
-ENTRYPOINT [ "atlassian-mcp-http"]
+ENTRYPOINT [ "defra-atlassian-mcp-http"]
 
 # stdio MCP server for a local MCP client: core dependencies only (no http
 # extra), no port, no curl. Build with --target stdio and run with
@@ -49,7 +49,7 @@ RUN --mount=type=cache,target=/home/nonroot/.cache/uv,uid=1000,gid=1000 \
     --mount=from=development,source=/home/nonroot/.local/bin/uv,target=/home/nonroot/.local/bin/uv \
     uv sync --locked --compile-bytecode --link-mode=copy --no-dev
 
-ENTRYPOINT [ "atlassian-mcp" ]
+ENTRYPOINT [ "defra-atlassian-mcp" ]
 
 FROM defradigital/python:${PARENT_VERSION} AS production
 
@@ -81,4 +81,4 @@ ARG PORT
 ENV PORT=${PORT}
 EXPOSE ${PORT}
 
-ENTRYPOINT [ "atlassian-mcp-http"]
+ENTRYPOINT [ "defra-atlassian-mcp-http"]

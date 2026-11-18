@@ -1,4 +1,4 @@
-"""The concrete TokenVerifier: atlassian-mcp mints its own personal access
+"""The concrete TokenVerifier: defra-atlassian-mcp mints its own personal access
 tokens, so verification is a lookup against PersonalTokenService rather than
 a signature check against an external IdP's key. This is the only
 implementation of app.auth.verifier.TokenVerifier in the app — both /mcp
