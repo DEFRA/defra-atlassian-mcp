@@ -1,5 +1,5 @@
 import asyncio
-import datetime
+import datetime as dt
 import unittest.mock
 
 import pytest
@@ -9,7 +9,7 @@ from pymongo import common as pymongo_common
 from app.identity import models
 from app.identity import mongo_store as identity_mongo_store
 
-_NOW = datetime.datetime(2024, 1, 1, tzinfo=datetime.UTC)
+_NOW = dt.datetime(2024, 1, 1, tzinfo=dt.UTC)
 
 
 def _user(**overrides: object) -> models.User:
@@ -30,7 +30,7 @@ def _pat(**overrides: object) -> models.PersonalAccessToken:
         "prefix": "mmcp_abcd1234",
         "label": "Claude Code",
         "created_at": _NOW,
-        "expires_at": _NOW + datetime.timedelta(days=90),
+        "expires_at": _NOW + dt.timedelta(days=90),
     }
     defaults.update(overrides)
     return models.PersonalAccessToken(**defaults)  # type: ignore[arg-type]

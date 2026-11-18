@@ -64,12 +64,11 @@ class AtlassianProvider(dishka.Provider):
         store: approval_ports.SpaceAccessRequestStore,
         allow_list: guard_module.ConfigAllowList,
     ) -> guard_module.SpaceGuard:
-        """The one line an operator changes to turn enforcement on (see
+        """The one line an operator changes to choose enforcement (see
         RESOURCE_GUARD_MODE): "config_list" (default) checks the hand-managed
         CSV allow list, "allow_list" binds AllowListSpaceGuard once the admin
-        review workflow has real approvals to check against."""
+        review workflow has real approvals to check against. The setting is
+        a Literal, so there is no third case to fall through to."""
         if config.resource_guard_mode == "allow_list":
             return guard_module.AllowListSpaceGuard(store)
-        if config.resource_guard_mode == "config_list":
-            return guard_module.ConfigAllowListSpaceGuard(allow_list)
-        return guard_module.AllowAllSpaceGuard()
+        return guard_module.ConfigAllowListSpaceGuard(allow_list)

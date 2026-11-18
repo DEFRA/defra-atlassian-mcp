@@ -1,4 +1,4 @@
-import datetime
+import datetime as dt
 
 from app.identity import models, ports
 
@@ -18,7 +18,7 @@ class InMemoryUserStore(ports.UserStore):
         user = models.User(
             user_id=user_id,
             email=user_id,
-            created_at=datetime.datetime.now(datetime.UTC),
+            created_at=dt.datetime.now(dt.UTC),
         )
         self._by_user_id[user_id] = user
         return user
@@ -47,10 +47,10 @@ class InMemoryPersonalAccessTokenStore(ports.PersonalAccessTokenStore):
         token = self._by_id.get(token_id)
         if token is not None:
             self._by_id[token_id] = token.model_copy(
-                update={"revoked_at": datetime.datetime.now(datetime.UTC)}
+                update={"revoked_at": dt.datetime.now(dt.UTC)}
             )
 
-    async def touch_last_used(self, token_id: str, when: datetime.datetime) -> None:
+    async def touch_last_used(self, token_id: str, when: dt.datetime) -> None:
         token = self._by_id.get(token_id)
         if token is not None:
             self._by_id[token_id] = token.model_copy(update={"last_used_at": when})

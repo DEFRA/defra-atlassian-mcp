@@ -1,4 +1,4 @@
-import datetime
+import datetime as dt
 
 import pytest
 
@@ -61,7 +61,7 @@ class TestMint:
         record, _ = await service.mint("usr_abc", "CI", ttl_days=9999)
 
         span = record.expires_at - record.created_at
-        assert span <= datetime.timedelta(days=30, hours=1)
+        assert span <= dt.timedelta(days=30, hours=1)
 
 
 class TestVerify:
@@ -107,10 +107,7 @@ class TestVerify:
         mint() actually does."""
         record, secret = await service.mint("usr_abc", "Claude Code")
         expired = record.model_copy(
-            update={
-                "expires_at": datetime.datetime.now(datetime.UTC)
-                - datetime.timedelta(days=1)
-            }
+            update={"expires_at": dt.datetime.now(dt.UTC) - dt.timedelta(days=1)}
         )
         await tokens.create(expired)
 
@@ -141,7 +138,7 @@ class TestVerify:
             last_used_throttle_seconds=3600,
         )
         record, secret = await service.mint("usr_abc", "Claude Code")
-        first_seen = datetime.datetime.now(datetime.UTC)
+        first_seen = dt.datetime.now(dt.UTC)
         await tokens.touch_last_used(record.id, first_seen)
 
         await service.verify(secret)

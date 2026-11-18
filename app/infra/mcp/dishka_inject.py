@@ -18,7 +18,7 @@ import dishka
 import fastmcp
 from dishka.integrations import base as dishka_base
 
-from app.common import request_context, tracing
+from app.common import request_context, trace_context
 
 _LIFESPAN_CONTAINER_KEY = "container"
 
@@ -67,11 +67,11 @@ def inject(func: Callable[..., Any]) -> Callable[..., Any]:
     async def with_trace(*args: Any, **kwargs: Any) -> Any:
         ctx = _extract_ctx(args, kwargs, ctx_param_name)
         rc = _build_request_context(ctx)
-        token = tracing.ctx_trace_id.set(rc.trace_id)
+        token = trace_context.ctx_trace_id.set(rc.trace_id)
         try:
             return await injected(*args, **kwargs)
         finally:
-            tracing.ctx_trace_id.reset(token)
+            trace_context.ctx_trace_id.reset(token)
 
     with_trace.__signature__ = injected.__signature__  # type: ignore[attr-defined]
     with_trace.__annotations__ = injected.__annotations__

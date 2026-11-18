@@ -1,6 +1,6 @@
 import logging
 
-from app.common import log_utils, tracing
+from app.common import log_utils, trace_context
 
 
 def _make_record(msg: str = "test message") -> logging.LogRecord:
@@ -17,18 +17,18 @@ def _make_record(msg: str = "test message") -> logging.LogRecord:
 
 class TestExtraFieldsFilter:
     def test_with_all_context(self):
-        trace_token = tracing.ctx_trace_id.set("test-trace-id")
-        request_token = tracing.ctx_request.set(
+        trace_token = trace_context.ctx_trace_id.set("test-trace-id")
+        request_token = trace_context.ctx_request.set(
             {"url": "http://test.com", "method": "GET"}
         )
-        response_token = tracing.ctx_response.set({"status_code": 200})
+        response_token = trace_context.ctx_response.set({"status_code": 200})
         try:
             record = _make_record()
             result = log_utils.ExtraFieldsFilter().filter(record)
         finally:
-            tracing.ctx_trace_id.reset(trace_token)
-            tracing.ctx_request.reset(request_token)
-            tracing.ctx_response.reset(response_token)
+            trace_context.ctx_trace_id.reset(trace_token)
+            trace_context.ctx_request.reset(request_token)
+            trace_context.ctx_response.reset(response_token)
 
         assert result is True
         assert record.trace == {"id": "test-trace-id"}

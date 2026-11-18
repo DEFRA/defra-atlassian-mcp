@@ -1,4 +1,4 @@
-import datetime
+import datetime as dt
 import unittest.mock
 import uuid
 
@@ -32,27 +32,27 @@ class TestIssue:
         assert issued.code_challenge == pkce.derive_code_challenge(doc["code_verifier"])
 
     async def test_sets_expires_at_from_clock_and_ttl(self) -> None:
-        now = datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC)
+        now = dt.datetime(2026, 1, 1, tzinfo=dt.UTC)
         mock_collection = unittest.mock.AsyncMock()
         store = state_store.MongoOAuthStateStore(
-            mock_collection, clock=lambda: now, ttl=datetime.timedelta(minutes=5)
+            mock_collection, clock=lambda: now, ttl=dt.timedelta(minutes=5)
         )
 
         await store.issue("user-123")
 
         doc = mock_collection.insert_one.await_args[0][0]
-        assert doc["expires_at"] == now + datetime.timedelta(minutes=5)
+        assert doc["expires_at"] == now + dt.timedelta(minutes=5)
 
 
 class TestConsume:
     async def test_returns_oauth_state_for_issued_token(self) -> None:
-        now = datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC)
+        now = dt.datetime(2026, 1, 1, tzinfo=dt.UTC)
         mock_collection = unittest.mock.AsyncMock()
         mock_collection.find_one_and_delete.return_value = {
             "_id": "state-123",
             "user_id": "user-123",
             "code_verifier": "verifier-abc",
-            "expires_at": now + datetime.timedelta(minutes=5),
+            "expires_at": now + dt.timedelta(minutes=5),
         }
         store = state_store.MongoOAuthStateStore(mock_collection, clock=lambda: now)
 
@@ -73,14 +73,14 @@ class TestConsume:
             await store.consume("not-a-real-state")
 
     async def test_rejects_expired_state(self) -> None:
-        issued_at = datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC)
-        now = issued_at + datetime.timedelta(minutes=10)
+        issued_at = dt.datetime(2026, 1, 1, tzinfo=dt.UTC)
+        now = issued_at + dt.timedelta(minutes=10)
         mock_collection = unittest.mock.AsyncMock()
         mock_collection.find_one_and_delete.return_value = {
             "_id": "state-123",
             "user_id": "user-123",
             "code_verifier": "verifier-abc",
-            "expires_at": issued_at + datetime.timedelta(minutes=5),
+            "expires_at": issued_at + dt.timedelta(minutes=5),
         }
         store = state_store.MongoOAuthStateStore(mock_collection, clock=lambda: now)
 

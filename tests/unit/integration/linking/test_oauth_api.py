@@ -1,4 +1,4 @@
-import datetime
+import datetime as dt
 
 import pytest
 
@@ -35,7 +35,7 @@ class TestExchangeCode:
         assert token.access_token == vcr_config.PLACEHOLDER
         assert token.refresh_token == vcr_config.PLACEHOLDER
         assert token.expires_at is not None
-        assert token.expires_at > datetime.datetime.now(datetime.UTC)
+        assert token.expires_at > dt.datetime.now(dt.UTC)
         # The cloud id is not in the token response at all -- it comes from
         # the follow-up accessible-resources call, the second interaction in
         # this cassette.
@@ -52,4 +52,4 @@ class TestRefresh:
         assert token.access_token == vcr_config.PLACEHOLDER
         assert token.refresh_token == vcr_config.PLACEHOLDER
         assert token.expires_at is not None
-        assert token.expires_at > datetime.datetime.now(datetime.UTC)
+        assert token.expires_at > dt.datetime.now(dt.UTC)

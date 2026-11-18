@@ -1,4 +1,4 @@
-import datetime
+import datetime as dt
 import json
 
 import httpx2
@@ -85,7 +85,7 @@ class TestGetValidToken:
             await oauth.get_valid_token("user-123")
 
     async def test_returns_access_token_when_not_expired(self, fake_config):
-        future_exp = datetime.datetime.now(datetime.UTC) + datetime.timedelta(hours=1)
+        future_exp = dt.datetime.now(dt.UTC) + dt.timedelta(hours=1)
         token = schemas.AtlassianToken(
             access_token="example-access-token",
             refresh_token="example-refresh-token",
@@ -112,7 +112,7 @@ class TestGetValidToken:
         assert result == "example-access-token"
 
     async def test_refreshes_and_stores_when_expired(self, fake_config):
-        past_exp = datetime.datetime.now(datetime.UTC) - datetime.timedelta(hours=1)
+        past_exp = dt.datetime.now(dt.UTC) - dt.timedelta(hours=1)
         new_token_data = {
             "access_token": "example-new-access-token",
             "refresh_token": "example-new-refresh-token",
@@ -146,7 +146,7 @@ class TestGetValidToken:
         """The refresh response says nothing about the site, so a refresh
         that dropped the cloud id would leave every subsequent product call
         with nothing to address."""
-        past_exp = datetime.datetime.now(datetime.UTC) - datetime.timedelta(hours=1)
+        past_exp = dt.datetime.now(dt.UTC) - dt.timedelta(hours=1)
         store = in_memory_token_store.InMemoryTokenStore(
             {
                 "user-123": schemas.AtlassianToken(

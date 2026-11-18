@@ -1,4 +1,4 @@
-import datetime
+import datetime as dt
 
 import pydantic
 
@@ -14,14 +14,14 @@ class AtlassianToken(pydantic.BaseModel):
 
     access_token: str
     refresh_token: str
-    expires_at: datetime.datetime | None = None
+    expires_at: dt.datetime | None = None
     cloud_id: str | None = None
 
 
 class OAuthState(pydantic.BaseModel):
     user_id: str
     code_verifier: str
-    expires_at: datetime.datetime
+    expires_at: dt.datetime
 
 
 class IssuedState(pydantic.BaseModel):
@@ -35,4 +35,4 @@ class IssuedState(pydantic.BaseModel):
 
 class AtlassianConnectionStatus(pydantic.BaseModel):
     linked: bool
-    access_token_expires_at: datetime.datetime | None = None
+    access_token_expires_at: dt.datetime | None = None

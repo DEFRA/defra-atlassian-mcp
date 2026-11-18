@@ -7,7 +7,7 @@ REST_AUTH_MODE — a caller who has not minted a token yet has nothing else to
 present here.
 """
 
-import datetime
+import datetime as dt
 
 import fastapi
 import pydantic
@@ -36,7 +36,7 @@ class MintedTokenResponse(pydantic.BaseModel):
     id: str
     token: str
     label: str
-    expires_at: datetime.datetime
+    expires_at: dt.datetime
 
 
 class TokenSummaryResponse(pydantic.BaseModel):
@@ -46,10 +46,10 @@ class TokenSummaryResponse(pydantic.BaseModel):
     id: str
     label: str
     prefix: str
-    created_at: datetime.datetime
-    expires_at: datetime.datetime
-    last_used_at: datetime.datetime | None
-    revoked_at: datetime.datetime | None
+    created_at: dt.datetime
+    expires_at: dt.datetime
+    last_used_at: dt.datetime | None
+    revoked_at: dt.datetime | None
     status: identity_models.TokenStatus
 
 

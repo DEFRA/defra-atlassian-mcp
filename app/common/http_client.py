@@ -4,7 +4,7 @@ import ssl
 import httpx2
 import truststore
 
-from app.common import tracing
+from app.common import trace_context
 
 logger = logging.getLogger(__name__)
 
@@ -14,15 +14,15 @@ def _create_ssl_context() -> ssl.SSLContext:
 
 
 async def async_hook_request_tracing(request: httpx2.Request) -> None:
-    trace_id = tracing.ctx_trace_id.get(None)
-    tracing_header = tracing.ctx_tracing_header.get(None)
+    trace_id = trace_context.ctx_trace_id.get(None)
+    tracing_header = trace_context.ctx_tracing_header.get(None)
     if trace_id and tracing_header:
         request.headers[tracing_header] = trace_id
 
 
 def hook_request_tracing(request: httpx2.Request) -> None:
-    trace_id = tracing.ctx_trace_id.get(None)
-    tracing_header = tracing.ctx_tracing_header.get(None)
+    trace_id = trace_context.ctx_trace_id.get(None)
+    tracing_header = trace_context.ctx_tracing_header.get(None)
     if trace_id and tracing_header:
         request.headers[tracing_header] = trace_id
 

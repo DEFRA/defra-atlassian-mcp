@@ -131,9 +131,12 @@ def real_config(**field_overrides: object) -> app_config.AppConfig:
     )
     defaults: dict[str, object] = {
         "base_url": "http://example.com",
-        "resource_guard_mode": "allow_all",
-        "resource_guard_allowed_jira_projects": "",
-        "resource_guard_allowed_confluence_spaces": "",
+        # config_list with the vendor fixtures' FARM key allowed for both
+        # products: the happy-path tests exercise a real guard rather than
+        # bypassing one. Tests about denial override these.
+        "resource_guard_mode": "config_list",
+        "resource_guard_allowed_jira_projects": "FARM",
+        "resource_guard_allowed_confluence_spaces": "FARM",
         "atlassian_config": atlassian_cfg,
     }
     defaults.update(field_overrides)

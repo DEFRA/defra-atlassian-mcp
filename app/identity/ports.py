@@ -1,5 +1,5 @@
 import abc
-import datetime
+import datetime as dt
 
 from app.identity import models
 
@@ -31,4 +31,4 @@ class PersonalAccessTokenStore(abc.ABC):
     async def revoke(self, token_id: str) -> None: ...
 
     @abc.abstractmethod
-    async def touch_last_used(self, token_id: str, when: datetime.datetime) -> None: ...
+    async def touch_last_used(self, token_id: str, when: dt.datetime) -> None: ...

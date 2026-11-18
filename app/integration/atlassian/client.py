@@ -3,8 +3,8 @@ from typing import Any
 import httpx2
 
 from app import config as app_config
-from app.integration.atlassian import models
-from app.integration.linking import exceptions, oauth_client
+from app.integration.atlassian import errors, models
+from app.integration.linking import oauth_client
 
 _PRODUCT_PATH_SEGMENT = {
     models.Product.JIRA: "jira",
@@ -18,7 +18,7 @@ class AtlassianClient:
     Every product call goes through here, so token acquisition, cloud-id
     addressing and error translation live in one place instead of being
     repeated per service. Callers see only the exceptions in
-    app.integration.linking.exceptions -- no raw vendor URLs, headers or
+    app.integration.atlassian.errors -- no raw vendor URLs, headers or
     response bodies escape to a REST client or an LLM tool caller.
     """
 
@@ -45,7 +45,7 @@ class AtlassianClient:
 
         if token.cloud_id is None:
             msg = f"No Atlassian site resolved for user {user_id}"
-            raise exceptions.AtlassianTokenError(msg)
+            raise errors.AtlassianCredentialsError(msg)
 
         base = self._config.atlassian_config.api_base.rstrip("/")
         segment = _PRODUCT_PATH_SEGMENT[product]
@@ -77,11 +77,11 @@ class AtlassianClient:
                 },
             )
         except httpx2.RequestError as exc:
-            raise exceptions.AtlassianUnavailableError(str(exc)) from exc
+            raise errors.AtlassianUnavailableError(str(exc)) from exc
 
         try:
             response.raise_for_status()
         except httpx2.HTTPStatusError as exc:
-            raise exceptions.AtlassianApiError(response.status_code) from exc
+            raise errors.AtlassianApiError(response.status_code) from exc
 
         return response.json()

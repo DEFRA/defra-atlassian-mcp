@@ -1,4 +1,3 @@
-import contextvars
 import logging
 import uuid
 from collections.abc import Awaitable, Callable
@@ -12,23 +11,28 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 
 from app import config as app_config
 from app.common import request_context
+from app.common.trace_context import (
+    ctx_request,
+    ctx_response,
+    ctx_trace_id,
+    ctx_tracing_header,
+)
+
+__all__ = [
+    "REQUEST_CONTEXT_SCOPE_KEY",
+    "ContainerMiddleware",
+    "TraceIdMiddleware",
+    "ctx_request",
+    "ctx_response",
+    "ctx_trace_id",
+    "ctx_tracing_header",
+]
 
 logger = logging.getLogger(__name__)
 
-# These ContextVars exist solely so the logging filter in
-# `app.common.log_utils.ExtraFieldsFilter` can enrich log records with
-# request metadata. They are NOT a back-channel for cross-service state —
-# every other consumer should depend on RequestContext via Dishka instead.
-ctx_trace_id: contextvars.ContextVar[str] = contextvars.ContextVar("trace_id")
-ctx_tracing_header: contextvars.ContextVar[str] = contextvars.ContextVar(
-    "tracing_header"
-)
-ctx_request: contextvars.ContextVar[dict[str, str] | None] = contextvars.ContextVar(
-    "request"
-)
-ctx_response: contextvars.ContextVar[dict[str, int] | None] = contextvars.ContextVar(
-    "response"
-)
+# The ContextVars are defined in app.common.trace_context, which has no
+# fastapi import; they are re-exported here for the middleware below and for
+# existing callers.
 
 REQUEST_CONTEXT_SCOPE_KEY = "request_context"
 

@@ -9,11 +9,12 @@ from fastmcp import exceptions as fastmcp_exceptions
 from app.auth import principal as principal_module
 from app.infra.mcp import dishka_inject
 from app.integration.atlassian import access_request_service as approvals_module
+from app.integration.atlassian import errors
 from app.integration.atlassian import guard as guard_module
 from app.integration.atlassian import models as approval_models
 from app.integration.atlassian.confluence import service as confluence_module
 from app.integration.atlassian.jira import service as jira_module
-from app.integration.linking import exceptions
+from app.integration.linking import exceptions as linking_exceptions
 
 _NOT_LINKED_MESSAGE = (
     "No Atlassian credentials found. Please connect your Atlassian account "
@@ -45,13 +46,13 @@ def _translate_errors(
     async def wrapper(*args: Any, **kwargs: Any) -> str:
         try:
             return await func(*args, **kwargs)
-        except exceptions.AtlassianTokenError as err:
+        except errors.AtlassianCredentialsError as err:
             raise fastmcp_exceptions.ToolError(_NOT_LINKED_MESSAGE) from err
-        except exceptions.NoAccessibleSiteError as err:
+        except linking_exceptions.NoAccessibleSiteError as err:
             raise fastmcp_exceptions.ToolError(_NO_SITE_MESSAGE) from err
-        except exceptions.AtlassianUnavailableError as err:
+        except errors.AtlassianUnavailableError as err:
             raise fastmcp_exceptions.ToolError(_UNAVAILABLE_MESSAGE) from err
-        except exceptions.AtlassianApiError as err:
+        except errors.AtlassianApiError as err:
             message = f"Atlassian API request failed with status {err.status_code}."
             raise fastmcp_exceptions.ToolError(message) from err
         except _PASS_THROUGH_ERRORS as err:

@@ -1,4 +1,4 @@
-import datetime
+import datetime as dt
 
 import pytest
 
@@ -23,20 +23,13 @@ def _request(space_key: str, **statuses: models.ProductStatus):
         reason="need it",
         iao="owner@defra.gov.uk",
         products=products,
-        created_at=datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC),
+        created_at=dt.datetime(2026, 1, 1, tzinfo=dt.UTC),
     )
 
 
 @pytest.fixture
 def store():
     return in_memory_space_access_request_store.InMemorySpaceAccessRequestStore()
-
-
-class TestAllowAllSpaceGuard:
-    async def test_permits_anything(self):
-        guard = guard_module.AllowAllSpaceGuard()
-
-        assert await guard.check("usr_a", "FARM", JIRA) is None
 
 
 class TestConfigAllowList:
