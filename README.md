@@ -96,9 +96,54 @@ Or, for Claude Code from the command line:
 claude mcp add atlassian -- uvx --from git+https://github.com/DEFRA/defra-atlassian-mcp@<commit-sha> atlassian-mcp
 ```
 
+**GitHub Copilot CLI** reads `~/.copilot/mcp-config.json`, which also uses `mcpServers`, but each local server also needs `"type"` and `"tools"`:
+
+```json
+{
+  "mcpServers": {
+    "atlassian": {
+      "type": "local",
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/DEFRA/defra-atlassian-mcp@<commit-sha>",
+        "atlassian-mcp"
+      ],
+      "tools": ["*"]
+    }
+  }
+}
+```
+
+Or add it from the terminal:
+
+```bash
+copilot mcp add atlassian -- uvx --from git+https://github.com/DEFRA/defra-atlassian-mcp@<commit-sha> atlassian-mcp
+```
+
+The Copilot CLI also reads `.mcp.json` and `.github/mcp.json` in a repository, once you have trusted the folder.
+
+**GitHub Copilot in VS Code** reads `.vscode/mcp.json` in a workspace, or the user `mcp.json` (run **MCP: Open User Configuration** from the Command Palette). This file uses `servers` rather than `mcpServers`:
+
+```json
+{
+  "servers": {
+    "atlassian": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/DEFRA/defra-atlassian-mcp@<commit-sha>",
+        "atlassian-mcp"
+      ]
+    }
+  }
+}
+```
+
 The first start takes a few seconds while `uvx` builds the package. After that it starts from uv's cache. To upgrade, change the SHA.
 
-To keep the config file somewhere else, add `"--env-file", "/path/to/atlassian-mcp.env"` after `"atlassian-mcp"`. Keeping the token in a file rather than in the client's config keeps it out of a file that is often shared or synced. Don't put the token in the `env` block of a project's `.mcp.json`, which is usually committed.
+To keep the config file somewhere else, add `"--env-file", "/path/to/atlassian-mcp.env"` after `"atlassian-mcp"`. Keeping the token in a file rather than in the client's config keeps it out of a file that is often shared or synced. Don't put the token in the `env` block of a project's `.mcp.json`, `.github/mcp.json` or `.vscode/mcp.json`, which are usually committed.
 
 `uvx` resolves dependencies fresh. It doesn't read this repository's `uv.lock` or the security pins in `[tool.uv] constraint-dependencies`, so it may install newer versions of dependencies than CI tested. If you need the locked versions, use a checkout instead.
 
