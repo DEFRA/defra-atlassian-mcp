@@ -4,7 +4,7 @@
   Used by the token-management surface (POST/GET/DELETE /tokens), where a
   caller who hasn't minted a PAT yet has nothing else to present. Only safe
   when the surface it guards is reachable solely from the portal's network.
-- token: the caller presents one of atlassian-mcp's own personal access tokens,
+- token: the caller presents one of defra-atlassian-mcp's own personal access tokens,
   the same way /mcp does.
 """
 

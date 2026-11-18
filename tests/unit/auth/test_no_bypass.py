@@ -4,7 +4,7 @@ in the caller-identity path.
 The old DEV_AUTH_ENABLED flag disabled JWT signature checking outright — a
 full impersonation hole on /mcp and every REST route, one boolean away from
 production, and it shipped with a "never enable in production" comment as
-its only real defence. atlassian-mcp no longer verifies signed tokens at all for
+its only real defence. defra-atlassian-mcp no longer verifies signed tokens at all for
 caller identity (it mints its own opaque personal access tokens and looks
 them up), so there is no longer any code path with a signature check to
 skip. Keep it that way mechanically: this test — not a review checklist —

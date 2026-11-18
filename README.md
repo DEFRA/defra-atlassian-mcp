@@ -1,4 +1,4 @@
-# atlassian-mcp
+# defra-atlassian-mcp
 
 An MCP (Model Context Protocol) server that exposes [Jira](https://www.atlassian.com/software/jira) and [Confluence](https://www.atlassian.com/software/confluence) content to AI agents, behind a governed access-approval workflow. AI agents connect at `/mcp` using a bearer token and call MCP tools to search issues, read an issue, list pages, or read a page. The Atlassian account itself is connected up front through the portal, not by the agent.
 
@@ -8,7 +8,7 @@ The companion frontend is [jira-mcp-portal](../jira-mcp-portal), which is the on
 
 There are two entry points over the same Jira and Confluence tools:
 
-| | `atlassian-mcp-http` | `atlassian-mcp` |
+| | `defra-atlassian-mcp-http` | `defra-atlassian-mcp` |
 | :--- | :--- | :--- |
 | Transport | Streamable HTTP at `/mcp` | stdio, launched by a local MCP client |
 | Caller identity | Personal access token per user | None: one local user |
@@ -16,7 +16,7 @@ There are two entry points over the same Jira and Confluence tools:
 | Allowlist | `config_list` (from config) or `allow_list` (per-user approvals via the portal) | From config only |
 | Needs | MongoDB, the portal, the `http` extra | Nothing else |
 
-Most of this README describes the HTTP server. For the local stdio server, see [Local stdio server](#local-stdio-server-atlassian-mcp).
+Most of this README describes the HTTP server. For the local stdio server, see [Local stdio server](#local-stdio-server-defra-atlassian-mcp).
 
 ## Requirements
 
@@ -26,18 +26,18 @@ Most of this README describes the HTTP server. For the local stdio server, see [
 
 The stdio server needs only Python and uv.
 
-## Local stdio server (`atlassian-mcp`)
+## Local stdio server (`defra-atlassian-mcp`)
 
 Runs on your machine, started by your MCP client (Claude Desktop, Claude Code, or any stdio MCP client). It reads Jira and Confluence with your own Atlassian API token, and only within the projects and spaces you list.
 
 ### 1. Create a config file
 
-Copy [`.env.example.stdio`](.env.example.stdio) to `~/.config/atlassian-mcp/.env` (on Windows, `%APPDATA%\atlassian-mcp\.env`) and fill it in:
+Copy [`.env.example.stdio`](.env.example.stdio) to `~/.config/defra-atlassian-mcp/.env` (on Windows, `%APPDATA%\defra-atlassian-mcp\.env`) and fill it in:
 
 ```bash
-mkdir -p ~/.config/atlassian-mcp
-cp .env.example.stdio ~/.config/atlassian-mcp/.env
-chmod 600 ~/.config/atlassian-mcp/.env
+mkdir -p ~/.config/defra-atlassian-mcp
+cp .env.example.stdio ~/.config/defra-atlassian-mcp/.env
+chmod 600 ~/.config/defra-atlassian-mcp/.env
 ```
 
 | Variable | Required | Meaning |
@@ -59,7 +59,7 @@ The server refuses to start if both allowlists are empty. Keys are matched exact
 
 1. Environment variables of the process (for example an MCP client's `env` block).
 2. The file passed with `--env-file PATH`. If the flag is given, the file must exist.
-3. If no `--env-file` is given: `$XDG_CONFIG_HOME/atlassian-mcp/.env`, defaulting to `~/.config/atlassian-mcp/.env`, or `%APPDATA%\atlassian-mcp\.env` on Windows, if it exists.
+3. If no `--env-file` is given: `$XDG_CONFIG_HOME/defra-atlassian-mcp/.env`, defaulting to `~/.config/defra-atlassian-mcp/.env`, or `%APPDATA%\defra-atlassian-mcp\.env` on Windows, if it exists.
 
 A `.env` in the current working directory is **never** read: MCP clients start servers from a directory you do not choose.
 
@@ -78,12 +78,12 @@ Add the server to your MCP client's config file, for example `.mcp.json` in a pr
 ```json
 {
   "mcpServers": {
-    "atlassian": {
+    "defra-atlassian-mcp": {
       "command": "uvx",
       "args": [
         "--from",
         "git+https://github.com/DEFRA/defra-atlassian-mcp@<commit-sha>",
-        "atlassian-mcp"
+        "defra-atlassian-mcp"
       ]
     }
   }
@@ -93,7 +93,7 @@ Add the server to your MCP client's config file, for example `.mcp.json` in a pr
 Or, for Claude Code from the command line:
 
 ```bash
-claude mcp add atlassian -- uvx --from git+https://github.com/DEFRA/defra-atlassian-mcp@<commit-sha> atlassian-mcp
+claude mcp add defra-atlassian-mcp -- uvx --from git+https://github.com/DEFRA/defra-atlassian-mcp@<commit-sha> defra-atlassian-mcp
 ```
 
 **GitHub Copilot CLI** reads `~/.copilot/mcp-config.json`, which also uses `mcpServers`, but each local server also needs `"type"` and `"tools"`:
@@ -101,13 +101,13 @@ claude mcp add atlassian -- uvx --from git+https://github.com/DEFRA/defra-atlass
 ```json
 {
   "mcpServers": {
-    "atlassian": {
+    "defra-atlassian-mcp": {
       "type": "local",
       "command": "uvx",
       "args": [
         "--from",
         "git+https://github.com/DEFRA/defra-atlassian-mcp@<commit-sha>",
-        "atlassian-mcp"
+        "defra-atlassian-mcp"
       ],
       "tools": ["*"]
     }
@@ -118,7 +118,7 @@ claude mcp add atlassian -- uvx --from git+https://github.com/DEFRA/defra-atlass
 Or add it from the terminal:
 
 ```bash
-copilot mcp add atlassian -- uvx --from git+https://github.com/DEFRA/defra-atlassian-mcp@<commit-sha> atlassian-mcp
+copilot mcp add defra-atlassian-mcp -- uvx --from git+https://github.com/DEFRA/defra-atlassian-mcp@<commit-sha> defra-atlassian-mcp
 ```
 
 The Copilot CLI also reads `.mcp.json` and `.github/mcp.json` in a repository, once you have trusted the folder.
@@ -128,13 +128,13 @@ The Copilot CLI also reads `.mcp.json` and `.github/mcp.json` in a repository, o
 ```json
 {
   "servers": {
-    "atlassian": {
+    "defra-atlassian-mcp": {
       "type": "stdio",
       "command": "uvx",
       "args": [
         "--from",
         "git+https://github.com/DEFRA/defra-atlassian-mcp@<commit-sha>",
-        "atlassian-mcp"
+        "defra-atlassian-mcp"
       ]
     }
   }
@@ -143,7 +143,7 @@ The Copilot CLI also reads `.mcp.json` and `.github/mcp.json` in a repository, o
 
 The first start takes a few seconds while `uvx` builds the package. After that it starts from uv's cache. To upgrade, change the SHA.
 
-To keep the config file somewhere else, add `"--env-file", "/path/to/atlassian-mcp.env"` after `"atlassian-mcp"`. Keeping the token in a file rather than in the client's config keeps it out of a file that is often shared or synced. Don't put the token in the `env` block of a project's `.mcp.json`, `.github/mcp.json` or `.vscode/mcp.json`, which are usually committed.
+To keep the config file somewhere else, add `"--env-file", "/path/to/atlassian-mcp.env"` after `"defra-atlassian-mcp"`. Keeping the token in a file rather than in the client's config keeps it out of a file that is often shared or synced. Don't put the token in the `env` block of a project's `.mcp.json`, `.github/mcp.json` or `.vscode/mcp.json`, which are usually committed.
 
 `uvx` resolves dependencies fresh. It doesn't read this repository's `uv.lock` or the security pins in `[tool.uv] constraint-dependencies`, so it may install newer versions of dependencies than CI tested. If you need the locked versions, use a checkout instead.
 
@@ -152,9 +152,9 @@ To keep the config file somewhere else, add `"--env-file", "/path/to/atlassian-m
 ```json
 {
   "mcpServers": {
-    "atlassian": {
+    "defra-atlassian-mcp": {
       "command": "uv",
-      "args": ["--directory", "/path/to/defra-atlassian-mcp", "run", "atlassian-mcp"]
+      "args": ["--directory", "/path/to/defra-atlassian-mcp", "run", "defra-atlassian-mcp"]
     }
   }
 }
@@ -167,7 +167,7 @@ To keep the config file somewhere else, add `"--env-file", "/path/to/atlassian-m
 Build the image as described in [Building the Docker images](#building-the-docker-images):
 
 ```bash
-docker build --target stdio --tag atlassian-mcp-stdio .
+docker build --target stdio --tag defra-atlassian-mcp-stdio .
 ```
 
 Point your MCP client at `docker` instead of `uv`. Use `-i` so stdin stays open, and never `-t`: a TTY would corrupt the protocol stream on stdout.
@@ -175,15 +175,15 @@ Point your MCP client at `docker` instead of `uv`. Use `-i` so stdin stays open,
 ```json
 {
   "mcpServers": {
-    "atlassian": {
+    "defra-atlassian-mcp": {
       "command": "docker",
-      "args": ["run", "-i", "--rm", "--env-file", "/path/to/atlassian-mcp.env", "atlassian-mcp-stdio"]
+      "args": ["run", "-i", "--rm", "--env-file", "/path/to/atlassian-mcp.env", "defra-atlassian-mcp-stdio"]
     }
   }
 }
 ```
 
-Docker's `--env-file` reads the same `KEY=VALUE` file as `.env.example.stdio`. Don't put quotes around values, because Docker keeps them. Alternatively, mount your config directory with `-v ~/.config/atlassian-mcp:/home/nonroot/.config/atlassian-mcp:ro` and drop `--env-file`.
+Docker's `--env-file` reads the same `KEY=VALUE` file as `.env.example.stdio`. Don't put quotes around values, because Docker keeps them. Alternatively, mount your config directory with `-v ~/.config/defra-atlassian-mcp:/home/nonroot/.config/defra-atlassian-mcp:ro` and drop `--env-file`.
 
 Inside the container, TLS verification uses the image's CA certificates, not your machine's. If you are behind a proxy that inspects TLS, the `uv` route above is simpler.
 
@@ -212,8 +212,8 @@ The package is split so the stdio entry point can be installed without the HTTP 
 
 | Install | Contains | Used by |
 | :--- | :--- | :--- |
-| core (`uv sync --no-dev`) | `dishka`, `fastmcp`, `httpx2`, `pydantic-settings`, `truststore` | `atlassian-mcp` (stdio) |
-| `--extra http` | adds `fastapi`, `uvicorn`, `pymongo`, `ecs-logging`, `asgi-logger` | `atlassian-mcp-http`, the Docker image |
+| core (`uv sync --no-dev`) | `dishka`, `fastmcp`, `httpx2`, `pydantic-settings`, `truststore` | `defra-atlassian-mcp` (stdio) |
+| `--extra http` | adds `fastapi`, `uvicorn`, `pymongo`, `ecs-logging`, `asgi-logger` | `defra-atlassian-mcp-http`, the Docker image |
 
 Security pins for transitive dependencies (`cryptography`, `dnspython`, `joserfc`, `pyjwt`, `python-multipart`) are uv `constraint-dependencies`: they pin a package only when something else pulls it in. A plain `pip install` ignores them, so install with uv.
 
@@ -224,7 +224,7 @@ The app is configured via environment variables, managed by Pydantic `BaseSettin
 | Variable | Default | Description |
 | :--- | :--- | :--- |
 | `BASE_URL` | *(required)* | Public base URL of this server |
-| `SERVER_NAME` | `atlassian-mcp` | Name reported by the MCP server |
+| `SERVER_NAME` | `defra-atlassian-mcp` | Name reported by the MCP server |
 | `PYTHON_ENV` | `None` | Set to `development` to enable hot-reload |
 | `HOST` | `127.0.0.1` | Server host |
 | `PORT` | `8085` | Server port |
@@ -275,7 +275,7 @@ The server uses two independent authentication layers.
 
 #### Personal access tokens (AI agent → server)
 
-atlassian-mcp mints its own bearer tokens rather than validating an external IdP's signature. The portal (which does authenticate the user via Entra) asserts the signed-in user's email via a trusted `X-User-Id` header against `POST /tokens`; the server uses that email verbatim as `user_id` — it mints no identifier of its own, only the opaque token (`amcp_...`) — and returns the plaintext secret exactly once — only its SHA-256 hash is ever persisted, so there is no endpoint that can return it again. The portal shows the token to the user, who pastes it into their MCP client.
+defra-atlassian-mcp mints its own bearer tokens rather than validating an external IdP's signature. The portal (which does authenticate the user via Entra) asserts the signed-in user's email via a trusted `X-User-Id` header against `POST /tokens`; the server uses that email verbatim as `user_id` — it mints no identifier of its own, only the opaque token (`amcp_...`) — and returns the plaintext secret exactly once — only its SHA-256 hash is ever persisted, so there is no endpoint that can return it again. The portal shows the token to the user, who pastes it into their MCP client.
 
 Every request to `/mcp` (and, in `REST_AUTH_MODE=token`, the REST/admin surface) must carry `Authorization: Bearer <token>`. The server looks the token up by hash — no signature to verify, since it minted the token itself — and resolves it to a `Principal`.
 
@@ -283,7 +283,7 @@ Every request to `/mcp` (and, in `REST_AUTH_MODE=token`, the REST/admin surface)
 sequenceDiagram
     participant User as User
     participant Portal as jira-mcp-portal
-    participant Server as atlassian-mcp
+    participant Server as defra-atlassian-mcp
     participant Agent as AI Agent
 
     User->>Portal: sign in (Entra)
@@ -311,7 +311,7 @@ The registered `redirect_uri` belongs to the **portal**, not to this server. Atl
 ```mermaid
 sequenceDiagram
     participant Portal as jira-mcp-portal
-    participant Server as atlassian-mcp
+    participant Server as defra-atlassian-mcp
     participant User as User (browser)
     participant Atlassian as Atlassian
     participant Mongo as MongoDB
@@ -418,7 +418,7 @@ The service runs on `http://localhost:8085`. Environment variables come from the
 **Running the app directly** (bring your own MongoDB, e.g. `docker compose up mongodb`):
 
 ```bash
-uv run atlassian-mcp-http
+uv run defra-atlassian-mcp-http
 ```
 
 This runs on `HOST:PORT` from your environment (default `127.0.0.1:8085`).
@@ -429,29 +429,29 @@ The [Dockerfile](Dockerfile) has three targets:
 
 | Target | Entry point | Contents | Use |
 | :--- | :--- | :--- | :--- |
-| `development` | `atlassian-mcp-http` | Dev base image, `http` extra | `docker compose` |
-| `stdio` | `atlassian-mcp` | Core dependencies only, no port | Local MCP clients |
-| `production` (default, last) | `atlassian-mcp-http` | `http` extra, port 8085 | The deployed HTTP server |
+| `development` | `defra-atlassian-mcp-http` | Dev base image, `http` extra | `docker compose` |
+| `stdio` | `defra-atlassian-mcp` | Core dependencies only, no port | Local MCP clients |
+| `production` (default, last) | `defra-atlassian-mcp-http` | `http` extra, port 8085 | The deployed HTTP server |
 
 `production` must stay the **last** stage in the file. The CDP publish workflow builds the default target without naming one, so whichever stage is last is what gets deployed.
 
 **HTTP server image:**
 
 ```bash
-docker build --tag atlassian-mcp-http .
+docker build --tag defra-atlassian-mcp-http .
 ```
 
 **stdio image, for your machine's architecture:**
 
 ```bash
-docker build --target stdio --tag atlassian-mcp-stdio .
+docker build --target stdio --tag defra-atlassian-mcp-stdio .
 ```
 
 **stdio image for both `linux/amd64` and `linux/arm64`** (one tag covering both architectures, e.g. to share with colleagues on Intel and Apple silicon):
 
 ```bash
 docker buildx build --platform linux/amd64,linux/arm64 \
-  --target stdio --tag atlassian-mcp-stdio --load .
+  --target stdio --tag defra-atlassian-mcp-stdio --load .
 ```
 
 - Building the architecture your machine isn't uses emulation, which Docker Desktop includes. It is slower but needs no setup.
@@ -461,7 +461,7 @@ docker buildx build --platform linux/amd64,linux/arm64 \
 **Smoke-test a stdio image** (MCP handshake, tool list, clean stdout, no http-only packages, exit 2 without config; makes no calls to Atlassian):
 
 ```bash
-./scripts/smoke-test-stdio-image.sh atlassian-mcp-stdio
+./scripts/smoke-test-stdio-image.sh defra-atlassian-mcp-stdio
 ```
 
 CI builds the stdio image and runs this script natively on amd64 and arm64 for every pull request.

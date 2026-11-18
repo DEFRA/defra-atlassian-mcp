@@ -27,12 +27,12 @@ class TestDefaultEnvFile:
             {"XDG_CONFIG_HOME": "/xdg"}, windows=False, home=tmp_path
         )
 
-        assert path == pathlib.Path("/xdg/atlassian-mcp/.env")
+        assert path == pathlib.Path("/xdg/defra-atlassian-mcp/.env")
 
     def test_falls_back_to_dot_config_in_home(self, tmp_path):
         path = entrypoint.default_env_file({}, windows=False, home=tmp_path)
 
-        assert path == tmp_path / ".config" / "atlassian-mcp" / ".env"
+        assert path == tmp_path / ".config" / "defra-atlassian-mcp" / ".env"
 
     def test_uses_appdata_on_windows(self, tmp_path):
         path = entrypoint.default_env_file(
@@ -41,7 +41,9 @@ class TestDefaultEnvFile:
             home=tmp_path,
         )
 
-        assert path == pathlib.Path("C:/Users/dev/AppData/Roaming/atlassian-mcp/.env")
+        assert path == pathlib.Path(
+            "C:/Users/dev/AppData/Roaming/defra-atlassian-mcp/.env"
+        )
 
 
 class TestResolveEnvFile:

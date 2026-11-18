@@ -54,7 +54,7 @@ if any(m.get("jsonrpc") != "2.0" for m in messages):
     sys.exit(f"non-JSON-RPC message on stdout: {messages}")
 
 by_id = {m.get("id"): m for m in messages}
-if by_id.get(1, {}).get("result", {}).get("serverInfo", {}).get("name") != "atlassian-mcp":
+if by_id.get(1, {}).get("result", {}).get("serverInfo", {}).get("name") != "defra-atlassian-mcp":
     sys.exit(f"bad initialize response: {by_id.get(1)}")
 
 tools = {t["name"] for t in by_id.get(2, {}).get("result", {}).get("tools", [])}

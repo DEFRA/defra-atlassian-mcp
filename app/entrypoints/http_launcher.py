@@ -1,7 +1,7 @@
-"""Console-script target for ``atlassian-mcp-http``.
+"""Console-script target for ``defra-atlassian-mcp-http``.
 
 Console scripts are installed whatever extras are chosen, so
-``atlassian-mcp-http`` exists in a core-only install too, where
+``defra-atlassian-mcp-http`` exists in a core-only install too, where
 app.entrypoints.http cannot even be imported (it imports fastapi at module
 level). This launcher imports it lazily and turns a missing http-only
 package into a clear instruction instead of a traceback.
@@ -23,10 +23,10 @@ def main() -> None:
         if missing not in _HTTP_ONLY_PACKAGES:
             raise
         print(  # logging is not configured yet
-            f"atlassian-mcp-http: {missing} is not installed. The HTTP server "
+            f"defra-atlassian-mcp-http: {missing} is not installed. The HTTP server "
             "needs the 'http' extra, e.g. `uv sync --extra http` or "
-            "`pip install 'atlassian-mcp[http]'`. For the local stdio server, "
-            "run `atlassian-mcp` instead.",
+            "`pip install 'defra-atlassian-mcp[http]'`. For the local stdio server, "
+            "run `defra-atlassian-mcp` instead.",
             file=sys.stderr,
         )
         sys.exit(1)

@@ -1,4 +1,4 @@
-"""stdio entry point: ``atlassian-mcp``.
+"""stdio entry point: ``defra-atlassian-mcp``.
 
 Runs the MCP server over stdin/stdout for a local MCP client (Claude
 Desktop, Claude Code, ...), authenticated to Atlassian with the user's own
@@ -9,7 +9,7 @@ configuration errors -- goes to stderr.
 
 Configuration is read, highest precedence first, from process environment
 variables, then the file given by ``--env-file``, or if no flag is given,
-``atlassian-mcp/.env`` in the user config directory if it exists. A
+``defra-atlassian-mcp/.env`` in the user config directory if it exists. A
 ``.env`` in the working directory is never read: the MCP client chooses the
 working directory, not the user.
 """
@@ -36,8 +36,8 @@ from app.integration.atlassian import client as atlassian_client
 
 logger = logging.getLogger(__name__)
 
-SERVER_NAME = "atlassian-mcp"
-_CONFIG_DIR_NAME = "atlassian-mcp"
+SERVER_NAME = "defra-atlassian-mcp"
+_CONFIG_DIR_NAME = "defra-atlassian-mcp"
 _EXIT_CONFIG_ERROR = 2
 _EXIT_STARTUP_ERROR = 1
 
@@ -61,9 +61,9 @@ def default_env_file(
     home: pathlib.Path | None = None,
 ) -> pathlib.Path:
     """Where the env file lives when --env-file is not given:
-    ``%APPDATA%\\atlassian-mcp\\.env`` on Windows, otherwise
-    ``$XDG_CONFIG_HOME/atlassian-mcp/.env``, defaulting to
-    ``~/.config/atlassian-mcp/.env``."""
+    ``%APPDATA%\\defra-atlassian-mcp\\.env`` on Windows, otherwise
+    ``$XDG_CONFIG_HOME/defra-atlassian-mcp/.env``, defaulting to
+    ``~/.config/defra-atlassian-mcp/.env``."""
     environ = os.environ if environ is None else environ
     windows = (os.name == "nt") if windows is None else windows
     home = pathlib.Path.home() if home is None else home
@@ -108,7 +108,7 @@ def _describe(exc: pydantic.ValidationError, env_file: pathlib.Path | None) -> s
 
     source = f"environment and {env_file}" if env_file else "environment"
     return (
-        f"atlassian-mcp: invalid configuration (read from {source}):\n"
+        f"defra-atlassian-mcp: invalid configuration (read from {source}):\n"
         + "\n".join(problems)
         + "\n\nExample configuration:\n"
         + _EXAMPLE_ENV
@@ -117,7 +117,7 @@ def _describe(exc: pydantic.ValidationError, env_file: pathlib.Path | None) -> s
 
 def _parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        prog="atlassian-mcp",
+        prog="defra-atlassian-mcp",
         description="Read-only Jira and Confluence MCP server over stdio.",
     )
     parser.add_argument(
@@ -125,7 +125,7 @@ def _parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
         type=pathlib.Path,
         default=None,
         help=(
-            "Path to a .env file. Defaults to atlassian-mcp/.env in the user "
+            "Path to a .env file. Defaults to defra-atlassian-mcp/.env in the user "
             "config directory, if present. Environment variables take precedence."
         ),
     )
@@ -174,7 +174,7 @@ def main(argv: Sequence[str] | None = None) -> None:
 
     stderr_logging.configure_stderr_logging(settings.log_level)
     logger.info(
-        "Starting atlassian-mcp (stdio) for %s with a %s API token.",
+        "Starting defra-atlassian-mcp (stdio) for %s with a %s API token.",
         settings.site_url,
         settings.api_token_type,
     )

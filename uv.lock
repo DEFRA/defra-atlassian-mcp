@@ -149,70 +149,6 @@ wheels = [
 ]
 
 [[package]]
-name = "atlassian-mcp"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "dishka" },
-    { name = "fastmcp" },
-    { name = "httpx2" },
-    { name = "pydantic-settings" },
-    { name = "truststore" },
-]
-
-[package.optional-dependencies]
-http = [
-    { name = "asgi-logger" },
-    { name = "ecs-logging" },
-    { name = "fastapi" },
-    { name = "pymongo", extra = ["aws", "encryption", "snappy", "zstd"] },
-    { name = "uvicorn" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "atlassian-mcp", extra = ["http"] },
-    { name = "mypy" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "pytest-cov" },
-    { name = "pytest-mock" },
-    { name = "ruff" },
-    { name = "taskipy" },
-    { name = "testcontainers" },
-    { name = "vcrpy" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "asgi-logger", marker = "extra == 'http'", specifier = "==0.1.0" },
-    { name = "dishka", specifier = "==1.10.1" },
-    { name = "ecs-logging", marker = "extra == 'http'", specifier = "==2.3.0" },
-    { name = "fastapi", marker = "extra == 'http'", specifier = "==0.162.0" },
-    { name = "fastmcp", specifier = "==4.1.5" },
-    { name = "httpx2", specifier = "==2.16.0" },
-    { name = "pydantic-settings", specifier = "==2.16.2" },
-    { name = "pymongo", extras = ["aws", "encryption", "snappy", "zstd"], marker = "extra == 'http'", specifier = "==4.19.0" },
-    { name = "truststore", specifier = "==0.10.5" },
-    { name = "uvicorn", marker = "extra == 'http'", specifier = "==0.54.0" },
-]
-provides-extras = ["http"]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "atlassian-mcp", extras = ["http"] },
-    { name = "mypy", specifier = "==2.4.1" },
-    { name = "pytest", specifier = "==9.2.0" },
-    { name = "pytest-asyncio", specifier = "==1.4.1.post1" },
-    { name = "pytest-cov", specifier = "==7.1.0" },
-    { name = "pytest-mock", specifier = "==3.17.0" },
-    { name = "ruff", specifier = "==0.17.3" },
-    { name = "taskipy", specifier = "==1.14.1" },
-    { name = "testcontainers", specifier = ">=4.15.0" },
-    { name = "vcrpy", specifier = "==9.4.0" },
-]
-
-[[package]]
 name = "attrs"
 version = "26.1.0"
 source = { registry = "https://pypi.org/simple" }
@@ -814,6 +750,70 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/c1/08/a444f3cca86cb27bc256831fc8c42b578390f4087bf6631cccb5334bd9ed/cyclopts-4.25.3.tar.gz", hash = "sha256:7d3a067bc7699a1a65fe2ea0b092a925855bb711a05adc1e65c5b9ba307acea4", size = 202814, upload-time = "2026-09-17T16:25:16.892Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a9/cc/e879da3d54cf727f90e6d90118e132672c3913338b566740486f8797190d/cyclopts-4.25.3-py3-none-any.whl", hash = "sha256:40e76b3153ea90e885abd8d3a4d8184db5a5eec2fde8540025aae8d72fc973fc", size = 242748, upload-time = "2026-09-17T16:25:15.509Z" },
+]
+
+[[package]]
+name = "defra-atlassian-mcp"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "dishka" },
+    { name = "fastmcp" },
+    { name = "httpx2" },
+    { name = "pydantic-settings" },
+    { name = "truststore" },
+]
+
+[package.optional-dependencies]
+http = [
+    { name = "asgi-logger" },
+    { name = "ecs-logging" },
+    { name = "fastapi" },
+    { name = "pymongo", extra = ["aws", "encryption", "snappy", "zstd"] },
+    { name = "uvicorn" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "defra-atlassian-mcp", extra = ["http"] },
+    { name = "mypy" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "pytest-cov" },
+    { name = "pytest-mock" },
+    { name = "ruff" },
+    { name = "taskipy" },
+    { name = "testcontainers" },
+    { name = "vcrpy" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "asgi-logger", marker = "extra == 'http'", specifier = "==0.1.0" },
+    { name = "dishka", specifier = "==1.10.1" },
+    { name = "ecs-logging", marker = "extra == 'http'", specifier = "==2.3.0" },
+    { name = "fastapi", marker = "extra == 'http'", specifier = "==0.162.0" },
+    { name = "fastmcp", specifier = "==4.1.5" },
+    { name = "httpx2", specifier = "==2.16.0" },
+    { name = "pydantic-settings", specifier = "==2.16.2" },
+    { name = "pymongo", extras = ["aws", "encryption", "snappy", "zstd"], marker = "extra == 'http'", specifier = "==4.19.0" },
+    { name = "truststore", specifier = "==0.10.5" },
+    { name = "uvicorn", marker = "extra == 'http'", specifier = "==0.54.0" },
+]
+provides-extras = ["http"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "defra-atlassian-mcp", extras = ["http"] },
+    { name = "mypy", specifier = "==2.4.1" },
+    { name = "pytest", specifier = "==9.2.0" },
+    { name = "pytest-asyncio", specifier = "==1.4.1.post1" },
+    { name = "pytest-cov", specifier = "==7.1.0" },
+    { name = "pytest-mock", specifier = "==3.17.0" },
+    { name = "ruff", specifier = "==0.17.3" },
+    { name = "taskipy", specifier = "==1.14.1" },
+    { name = "testcontainers", specifier = ">=4.15.0" },
+    { name = "vcrpy", specifier = "==9.4.0" },
 ]
 
 [[package]]

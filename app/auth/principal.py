@@ -2,7 +2,7 @@
 
 Both /mcp tools and the REST routers receive a Principal and never a raw
 token. Unlike the mcp-template reference design (which maps an external IdP's
-claims through a shared `from_claims` function), atlassian-mcp mints its own
+claims through a shared `from_claims` function), defra-atlassian-mcp mints its own
 personal access tokens: a verified token already resolves directly to a
 stored User + PersonalAccessToken record, so there is no generic
 claims-to-identity mapping step to centralise here. `Principal` is just the

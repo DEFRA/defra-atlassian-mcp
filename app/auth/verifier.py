@@ -2,7 +2,7 @@
 
 TokenVerifier is the seam both /mcp and the REST surface target: hand it a
 bearer token, get back a VerifiedToken (validated claims) or None if the
-token is not acceptable. atlassian-mcp mints its own personal access tokens
+token is not acceptable. defra-atlassian-mcp mints its own personal access tokens
 rather than validating an external IdP's signature, so the concrete binding
 is a Mongo lookup — it lives in app.infra.auth.personal_token. Nothing
 outside that adapter (and its two thin per-surface wrappers,
