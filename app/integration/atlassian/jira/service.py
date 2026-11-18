@@ -1,3 +1,4 @@
+import re
 from typing import Any
 
 from app.integration.atlassian import client as atlassian_client
@@ -9,8 +10,12 @@ _DEFAULT_LIMIT = 25
 _MAX_LIMIT = 100
 _SEARCH_FIELDS = "summary,status,issuetype,assignee,updated"
 _ISSUE_FIELDS = (
-    "summary,status,issuetype,assignee,reporter,priority,updated,description"
+    "summary,status,issuetype,assignee,reporter,priority,updated,description,project"
 )
+# Anchored with \Z, not $, so a trailing newline cannot slip through. The key
+# is interpolated into the request path, so anything beyond PROJECT-123 (a
+# slash, a dot segment, a query string) must never reach the client.
+_ISSUE_KEY = re.compile(r"(?P<project>[A-Z][A-Z0-9_]+)-[0-9]+\Z")
 
 
 class IssueNotFoundError(Exception):
@@ -68,9 +73,14 @@ class JiraService:
         return "\n".join(_render_issue_line(issue) for issue in issues)
 
     async def get_issue(self, user_id: str, issue_key: str) -> str:
-        """Fetch one issue. The project is taken from the issue key's own
-        prefix, which Jira guarantees, so the guard runs on the real owning
-        project rather than on anything the caller asserts."""
+        """Fetch one issue.
+
+        The guard runs on the project in the key's own prefix, before any
+        vendor call. That is not enough on its own: Jira resolves the old key
+        of a moved issue to the issue in its new project. So the project on
+        the returned issue is compared with the one that was checked, and a
+        mismatch is reported as not found rather than leaking the issue.
+        """
         project_key = project_key_of(issue_key)
         await self._guard.check(user_id, project_key, models.Product.JIRA)
 
@@ -81,18 +91,23 @@ class JiraService:
             params={"fields": _ISSUE_FIELDS},
         )
 
+        if _field(payload, "project", "key") != project_key:
+            msg = f"{issue_key} is not an issue in {project_key}."
+            raise IssueNotFoundError(msg)
+
         return _render_issue(payload)
 
 
 def project_key_of(issue_key: str) -> str:
     """``FARM-123`` -> ``FARM``. Raises IssueNotFoundError for anything that
-    is not an issue key, so a malformed key never reaches the guard as an
-    empty project."""
-    prefix, separator, _ = issue_key.partition("-")
-    if not separator or not prefix:
+    is not exactly an issue key, so a malformed key never reaches the guard
+    and a crafted one (``FARM-1/../OTHER-5``) never reaches the request
+    path, where URL normalisation would address a different issue."""
+    match = _ISSUE_KEY.match(issue_key)
+    if match is None:
         msg = f"{issue_key} is not a Jira issue key (expected e.g. FARM-123)."
         raise IssueNotFoundError(msg)
-    return prefix
+    return match.group("project")
 
 
 def _clamp(limit: int) -> int:

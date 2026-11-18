@@ -29,6 +29,20 @@ def _page(space_id: str = "9001", body: dict | None = None) -> httpx2.Response:
     return httpx2.Response(200, json=vendor.page(space_id=space_id, body=body))
 
 
+class _PermittingGuard(guard_module.SpaceGuard):
+    """Test-only: says yes to everything, so these tests cover what the
+    service sends and renders. Guard behaviour is tested in test_guard.py,
+    and the shipped code has no allow-everything guard."""
+
+    async def check(
+        self,
+        user_id: str,  # noqa: ARG002
+        space_key: str,  # noqa: ARG002
+        product: models.Product,  # noqa: ARG002
+    ) -> None:
+        return None
+
+
 def _make_service(responses, guard=None):
     http, transport = httpx_helpers.make_mock_client(responses)
     client = client_module.AtlassianClient(
@@ -36,7 +50,7 @@ def _make_service(responses, guard=None):
         client=http,
         oauth=fake_oauth_client.FakeOAuthClient("tok"),  # type: ignore[arg-type]
     )
-    guard = guard or guard_module.AllowAllSpaceGuard()
+    guard = guard or _PermittingGuard()
     return confluence_module.ConfluenceService(client=client, guard=guard), transport
 
 
@@ -97,6 +111,20 @@ class TestGetPage:
 
         with pytest.raises(confluence_module.PageNotFoundError):
             await service.get_page("usr_a", "FARM", "1")
+
+    @pytest.mark.parametrize(
+        "page_id",
+        ["1/../2", "../spaces", "1?x=y", "", "abc", "１２"],
+    )
+    async def test_refuses_a_page_id_that_is_not_digits(self, page_id):
+        """The id is interpolated into the request path, so anything but
+        digits could address another resource."""
+        service, transport = _make_service([])
+
+        with pytest.raises(confluence_module.PageNotFoundError):
+            await service.get_page("usr_a", "FARM", page_id)
+
+        assert transport.requests == []
 
     async def test_reports_an_unknown_space_key(self):
         service, _ = _make_service([_NO_PAGES])

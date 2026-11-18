@@ -36,10 +36,10 @@ The app is configured via environment variables, managed by Pydantic `BaseSettin
 | `AWS_ENDPOINT_URL` | `None` | AWS endpoint override, e.g. for LocalStack in local dev |
 | `HTTP_PROXY` | `None` | Outbound HTTP proxy URL |
 | `TRACING_HEADER` | `x-cdp-request-id` | Request tracing header name |
-| `RESOURCE_GUARD_MODE` | `config_list` | `config_list` denies a space unless its key is listed, per product, in the two CSV vars below — see [Config-driven resource guard](#config-driven-resource-guard). `allow_list` denies unless an approved request exists for the (user, space, product) triple — see [Space access requests](#space-access-requests). `allow_all` lets every request through |
+| `RESOURCE_GUARD_MODE` | `config_list` | `config_list` denies a space unless its key is listed, per product, in the two CSV vars below — see [Config-driven resource guard](#config-driven-resource-guard). `allow_list` denies unless an approved request exists for the (user, space, product) triple — see [Space access requests](#space-access-requests). Any other value fails at startup; there is no allow-everything mode |
 | `RESOURCE_GUARD_ALLOWED_JIRA_PROJECTS` | *(required)* | Comma-separated Jira project keys allowed under `config_list` mode. May be set empty, but must be present — the server fails to start otherwise |
 | `RESOURCE_GUARD_ALLOWED_CONFLUENCE_SPACES` | *(required)* | Comma-separated Confluence space keys allowed under `config_list` mode. May be set empty, but must be present — the server fails to start otherwise |
-| `REST_AUTH_MODE` | `trusted` | `trusted` (network-asserted `X-User-Id` header) or `token` (personal access token) for REST/admin routes. `/mcp` and `/tokens` are unaffected — see [Auth](#auth) |
+| `REST_AUTH_MODE` | `trusted` | `trusted` (network-asserted `X-User-Id` header) or `token` (personal access token) for REST/admin routes. Any other value fails at startup. `/mcp` and `/tokens` are unaffected — see [Auth](#auth) |
 | `TRUSTED_USER_HEADER` | `X-User-Id` | Header the portal uses to assert the caller in `trusted` mode |
 | `IDENTITY_DEFAULT_TTL_DAYS` | `90` | Default token lifetime |
 | `IDENTITY_MAX_TTL_DAYS` | `365` | Longest lifetime a caller may request |
@@ -168,7 +168,7 @@ The routes:
 - `GET /admin/access-requests` — the portal lists requests with at least one product still pending, for IAO review.
 - `POST /admin/access-requests/{request_id}/approve` / `.../reject` — the portal records the IAO's decision for one product, including (for approvals) references to the data-handling form and risk assessment.
 
-In `allow_all` mode, this workflow still records requests and decisions, but nothing is enforced — flip to `allow_list` only once the admin review workflow has real approvals to check against, since flipping first denies all traffic. This is a separate mode from `config_list` (the default) described next.
+In `config_list` mode, this workflow still records requests and decisions, but they are not what is enforced — flip to `allow_list` only once the admin review workflow has real approvals to check against, since flipping first denies all traffic. `config_list` (the default) is described next.
 
 ### Config-driven resource guard
 

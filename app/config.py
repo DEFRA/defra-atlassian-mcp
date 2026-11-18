@@ -1,3 +1,5 @@
+from typing import Literal
+
 import pydantic
 import pydantic_settings
 
@@ -39,7 +41,11 @@ class IdentityConfig(pydantic_settings.BaseSettings):
 
     model_config = pydantic_settings.SettingsConfigDict(env_file=".env", extra="ignore")
 
-    rest_auth_mode: str = pydantic.Field("trusted", alias="REST_AUTH_MODE")
+    # A Literal, not a free str: an unrecognised value must fail at startup
+    # rather than quietly fall back to trusting the caller-asserted header.
+    rest_auth_mode: Literal["trusted", "token"] = pydantic.Field(
+        "trusted", alias="REST_AUTH_MODE"
+    )
     trusted_user_header: str = pydantic.Field("X-User-Id", alias="TRUSTED_USER_HEADER")
 
     default_ttl_days: int = pydantic.Field(90, alias="IDENTITY_DEFAULT_TTL_DAYS")
@@ -77,10 +83,9 @@ class AppConfig(pydantic_settings.BaseSettings):
     # services deny access unless an approved SpaceAccessRequest exists for
     # the (user, space, product) triple. Flip to it only once the admin
     # review workflow has real approvals to check against — flipping first
-    # denies all traffic. "allow_all" — every request succeeds; the
-    # governance workflow (app/integration/atlassian/) still records requests
-    # and decisions but nothing is enforced.
-    resource_guard_mode: str = pydantic.Field(
+    # denies all traffic. There is deliberately no allow-everything mode, and
+    # any other value fails at startup rather than disabling enforcement.
+    resource_guard_mode: Literal["config_list", "allow_list"] = pydantic.Field(
         "config_list", alias="RESOURCE_GUARD_MODE"
     )
     resource_guard_allowed_jira_projects: str = pydantic.Field(

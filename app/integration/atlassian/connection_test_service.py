@@ -25,13 +25,13 @@ class AtlassianConnectionTestService:
     async def test_connection(self, user_id: str) -> AtlassianProfile:
         """Test the user's Atlassian connection by calling GET /me.
 
-        Raises exceptions.AtlassianTokenError if the user is not linked or the
+        Raises errors.AtlassianCredentialsError if the user is not linked or the
         stored token cannot be refreshed.
 
-        Raises exceptions.AtlassianApiError if Atlassian returns a non-2xx
+        Raises errors.AtlassianApiError if Atlassian returns a non-2xx
         response (e.g. the token is revoked or expired).
 
-        Raises exceptions.AtlassianUnavailableError if no response is received
+        Raises errors.AtlassianUnavailableError if no response is received
         at all (e.g. Atlassian is unreachable or the request times out).
         """
         payload = await self._client.get_me(user_id)

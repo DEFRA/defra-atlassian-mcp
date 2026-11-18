@@ -77,6 +77,7 @@ def issue(
         "reporter": {"displayName": "Someone Else"},
         "priority": {"name": "High"},
         "updated": "2026-08-21T11:40:00.000+0000",
+        "project": {"key": key.partition("-")[0]},
     }
     if description is not None:
         fields["description"] = description

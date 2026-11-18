@@ -30,10 +30,11 @@ class TestGetConfigAllowList:
             assert body["confluenceSpaces"] == ["FARM"]
 
     def test_reports_empty_lists_when_unconfigured(self):
-        with test_app.rest_client(resource_guard_mode="config_list") as (
-            client,
-            _overrides,
-        ):
+        with test_app.rest_client(
+            resource_guard_mode="config_list",
+            resource_guard_allowed_jira_projects="",
+            resource_guard_allowed_confluence_spaces="",
+        ) as (client, _overrides):
             response = client.get(
                 "/admin/resource-guard/allowed-spaces", headers=_HEADERS
             )

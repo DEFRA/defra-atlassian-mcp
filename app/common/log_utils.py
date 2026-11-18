@@ -1,14 +1,14 @@
 import logging
 
-from app.common import tracing
+from app.common import trace_context
 
 
 # Adds additional ECS fields to the logger.
 class ExtraFieldsFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
-        trace_id = tracing.ctx_trace_id.get("")
-        req = tracing.ctx_request.get(None)
-        resp = tracing.ctx_response.get(None)
+        trace_id = trace_context.ctx_trace_id.get("")
+        req = trace_context.ctx_request.get(None)
+        resp = trace_context.ctx_response.get(None)
 
         if trace_id:
             record.trace = {"id": trace_id}  # type: ignore[attr-defined]

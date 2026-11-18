@@ -30,7 +30,9 @@ class TestProvider(dishka.Provider):
 
     @dishka.provide
     def provide_space_guard(self) -> guard_module.SpaceGuard:
-        return guard_module.AllowAllSpaceGuard()
+        return guard_module.ConfigAllowListSpaceGuard(
+            guard_module.ConfigAllowList.from_csv("FARM", "FARM")
+        )
 
     @dishka.provide
     def provide_state_store(self) -> token_store.OAuthStateStore:

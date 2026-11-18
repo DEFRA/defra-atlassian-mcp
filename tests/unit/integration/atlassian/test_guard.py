@@ -32,13 +32,6 @@ def store():
     return in_memory_space_access_request_store.InMemorySpaceAccessRequestStore()
 
 
-class TestAllowAllSpaceGuard:
-    async def test_permits_anything(self):
-        guard = guard_module.AllowAllSpaceGuard()
-
-        assert await guard.check("usr_a", "FARM", JIRA) is None
-
-
 class TestConfigAllowList:
     def test_from_csv_strips_whitespace_and_drops_empty_entries(self):
         allow_list = guard_module.ConfigAllowList.from_csv(

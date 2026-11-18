@@ -64,20 +64,6 @@ class SpaceGuard(abc.ABC):
         """Return None to allow; raise ForbiddenSpaceError to deny."""
 
 
-class AllowAllSpaceGuard(SpaceGuard):
-    """Permits access to every space for every product. Opt in explicitly
-    via RESOURCE_GUARD_MODE=allow_all -- ConfigAllowListSpaceGuard is the
-    default enforcement mode."""
-
-    async def check(
-        self,
-        user_id: str,  # noqa: ARG002
-        space_key: str,  # noqa: ARG002
-        product: models.Product,  # noqa: ARG002
-    ) -> None:
-        return None
-
-
 class ConfigAllowListSpaceGuard(SpaceGuard):
     """Permits access to space/project keys listed per product in
     ConfigAllowList. Unlike AllowListSpaceGuard, this list is static config

@@ -93,6 +93,22 @@ class TestJira:
         assert result.is_error
         assert "not a Jira issue key" in result.content[0].text
 
+    async def test_a_path_traversal_key_is_refused_before_any_vendor_call(self):
+        """FARM-1/../OTHER-5 used to pass the guard as FARM and then fetch
+        OTHER-5 once the URL was normalised."""
+        async with test_app.mcp_client(
+            atlassian_token="atlassian-tok", responses=[]
+        ) as (client, overrides, _user_id):
+            result = await client.call_tool(
+                "get_jira_issue",
+                {"issue_key": "FARM-1/../OTHER-5"},
+                raise_on_error=False,
+            )
+
+        assert result.is_error
+        assert "not a Jira issue key" in result.content[0].text
+        assert overrides.transport.requests == []
+
 
 class TestConfluence:
     async def test_list_pages_renders_id_and_title(self):

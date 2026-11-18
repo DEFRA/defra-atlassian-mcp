@@ -75,6 +75,17 @@ class TestAppConfig:
                 atlassian_config=_atlassian_config(),
             )
 
+    @pytest.mark.parametrize("mode", ["allow_all", "config-list", "", "ALLOW_LIST"])
+    def test_an_unknown_resource_guard_mode_fails_fast(self, mode: str) -> None:
+        """A typo used to fall through to allow-everything. Any value other
+        than the two real modes must now stop the server starting."""
+        with pytest.raises(pydantic.ValidationError):
+            _make_config(RESOURCE_GUARD_MODE=mode)
+
+    @pytest.mark.parametrize("mode", ["config_list", "allow_list"])
+    def test_both_real_resource_guard_modes_are_accepted(self, mode: str) -> None:
+        assert _make_config(RESOURCE_GUARD_MODE=mode).resource_guard_mode == mode
+
 
 class TestAtlassianConfig:
     def test_defaults(self) -> None:
@@ -105,3 +116,10 @@ class TestIdentityConfig:
         )
 
         assert cfg.identity_config.rest_auth_mode == "token"
+
+    @pytest.mark.parametrize("mode", ["tokens", "Token", "none", ""])
+    def test_an_unknown_rest_auth_mode_fails_fast(self, mode: str) -> None:
+        """An unrecognised value used to fall back to trusting the
+        caller-asserted header."""
+        with pytest.raises(pydantic.ValidationError):
+            app_config.IdentityConfig(REST_AUTH_MODE=mode)  # type: ignore[call-arg]

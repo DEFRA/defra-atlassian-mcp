@@ -73,6 +73,12 @@ class ConfluenceService:
         """
         await self._guard.check(user_id, space_key, models.Product.CONFLUENCE)
 
+        # The id is interpolated into the request path, so only digits may
+        # reach it -- a slash or dot segment could address another resource.
+        if not (page_id.isascii() and page_id.isdigit()):
+            msg = f"{page_id} is not a Confluence page id (expected digits)."
+            raise PageNotFoundError(msg)
+
         space_id = await self._resolve_space_id(user_id, space_key)
 
         page = await self._client.get(
